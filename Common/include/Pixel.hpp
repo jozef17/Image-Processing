@@ -51,7 +51,18 @@ public:
 	RGBAPixel ToRGBA();
 	YCbCrPixel ToYCbCr();
 
+private:
+	enum class PixelType : uint8_t { RGB, RGBA, YCBCR };
 
+	union PixelInternal
+	{
+		RGBPixel rgbPixel;
+		RGBAPixel rgbaPixel;
+		YCbCrPixel ycbcrPixel;
+	};
+
+	const PixelType type;
+	PixelInternal pixel;
 };
 
 
