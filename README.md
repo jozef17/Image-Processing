@@ -6,18 +6,21 @@
 ## Common
 Static library containing shared functionality
 
+### Image
+- Contains ability to get and set particular pixel
+
+![Demo](Common/media/Image.png)
+
 ### Pixel
-- Class
-- Representation of pixel
 - Contains conversion to RGB, RGBA or YCbCr
 
-TODO: Add class diagram
+![Demo](Common/media/Pixel.png)
 
 ### RGBPixel
-- Structure for RGB data
+- Structure for encapsulating RGB data
 
 ### RGBAPixel
-- Structure for RGBA data
+- Structure for encapsulating RGBA data
 
 ### YCbCrPixel
-- Structure for YCbCr data
+- Structure for encapsulating YCbCr data
