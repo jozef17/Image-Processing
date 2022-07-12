@@ -2,10 +2,12 @@
 cmake_minimum_required (VERSION 3.8)
 
 set(SOURCES
+   src/Image.cpp
    src/Pixel.cpp
 )
 
 set(INCLUDES
+   include/Image.hpp
    include/Pixel.hpp
 )
 
