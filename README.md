@@ -6,6 +6,14 @@
 ## Common
 Static library containing shared functionality
 
+### BitmapImage
+- Loads image data from .bmp file
+
+### Exception
+- Exception for differentiating between project exceptions and standard exceptions
+
+![Demo](Common/media/Exception.png)
+
 ### Image
 - Contains ability to get and set particular pixel
 
@@ -16,11 +24,17 @@ Static library containing shared functionality
 
 ![Demo](Common/media/Pixel.png)
 
-### RGBPixel
-- Structure for encapsulating RGB data
+### RawImage
+- Loads image data from RAW image file
 
 ### RGBAPixel
 - Structure for encapsulating RGBA data
+
+### RGBPixel
+- Structure for encapsulating RGB data
+
+### RuntimeException
+- Exception for differentiating between project exceptions and standard exceptions
 
 ### YCbCrPixel
 - Structure for encapsulating YCbCr data

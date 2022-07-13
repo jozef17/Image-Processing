@@ -15,6 +15,5 @@ target_link_libraries(CommonTests
 
 add_test(NAME CommonTests COMMAND example)
 
-list (APPEND EXTRA_INCLUDES "${CMAKE_SOURCE_DIR}/include")
 list (APPEND EXTRA_INCLUDES "${CMAKE_CURRENT_LIST_DIR}/../include")
 target_include_directories (CommonTests PUBLIC ${EXTRA_INCLUDES})

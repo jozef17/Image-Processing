@@ -1,6 +1,9 @@
 ﻿#include <gtest/gtest.h>
 #include "Image.hpp"
 #include "Pixel.hpp"
+#include "RAWImage.hpp"
+#include "BitmapImage.hpp"
+#include "Exception.hpp"
 
 // Check whether proper width and height are returned
 TEST(ImageTest, GetWidthAndHeight)
@@ -51,4 +54,30 @@ TEST(ImageTest, SetAndGetRed)
 	EXPECT_EQ(255, val.red);
 	EXPECT_EQ(0, val.green);
 	EXPECT_EQ(0, val.blue);
+}
+
+TEST(ImageTest, RAWImageReadError)
+{
+	try
+	{
+		RAWImage* image = new RAWImage("img.raw", 64, 32);
+	}
+	catch (Exception& exception)
+	{
+		std::string message = exception.what();
+		EXPECT_EQ(message, "Unable to open file: \"img.raw\"");
+	}
+}
+
+TEST(ImageTest, BitmapImageReadError)
+{
+	try
+	{
+		BitmapImage* image = new BitmapImage("img.bmp");
+	}
+	catch (Exception& exception)
+	{
+		std::string message = exception.what();
+		EXPECT_EQ(message, "Unable to open file: \"img.raw\"");
+	}
 }

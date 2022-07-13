@@ -19,6 +19,8 @@ public:
 	void  SetPixel(uint32_t x, uint32_t y, Pixel &p);
 
 protected:
+	Image();
+
 	uint32_t width;
 	uint32_t height;
 
