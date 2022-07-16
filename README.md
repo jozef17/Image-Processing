@@ -36,5 +36,9 @@ Static library containing shared functionality
 ### RuntimeException
 - Exception for differentiating between project exceptions and standard exceptions
 
+### Window
+- Displaying images
+- Arrow keay and WASD for moving image
+
 ### YCbCrPixel
 - Structure for encapsulating YCbCr data

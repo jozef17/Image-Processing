@@ -26,6 +26,8 @@ public:
 private:
 	void UpdateFramebuffer();
 
+	void HandleKeyPress(uint16_t key);
+
 	// Display data
 	std::unique_ptr<uint8_t[]> framebuffer;
 	Image* image;
