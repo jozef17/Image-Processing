@@ -76,8 +76,11 @@ BitmapImage::BitmapImage(std::string filename)
 	this->image = std::unique_ptr<std::unique_ptr<Pixel>[]>(new std::unique_ptr<Pixel>[width * height]);
 	for (auto i = 0; i < this->width * this->height; i++)
 	{
-		RGBPixel rgb;
-		file.read((char*)&rgb, 3);
+		// read pixel
+		uint8_t data[3];
+		file.read((char*)&data, 3);
+		// bmp stores color data in inverted order
+		RGBPixel rgb{ data[2], data[1], data[0]};
 		this->image[i] = std::unique_ptr<Pixel>(new Pixel(rgb));
 	}
 
