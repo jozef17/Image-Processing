@@ -23,7 +23,7 @@ void RAWImage::LoadData(std::string filename)
 
 	// Read file
 	this->image = std::unique_ptr<std::unique_ptr<Pixel>[]>(new std::unique_ptr<Pixel>[width * height]);
-	for (auto i = 0; i < this->width * this->height; i++)
+	for (uint32_t i = 0; i < this->width * this->height; i++)
 	{
 		RGBPixel rgb;
 		file.read((char*)&rgb, 3);

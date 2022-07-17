@@ -74,7 +74,7 @@ BitmapImage::BitmapImage(std::string filename)
 	file.seekg(offset); // go to start of data
 
 	this->image = std::unique_ptr<std::unique_ptr<Pixel>[]>(new std::unique_ptr<Pixel>[width * height]);
-	for (auto i = 0; i < this->width * this->height; i++)
+	for (uint32_t i = 0; i < this->width * this->height; i++)
 	{
 		// read pixel
 		uint8_t data[3];
