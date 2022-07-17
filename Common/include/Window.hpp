@@ -6,7 +6,6 @@
 #include <cstdint>
 #include <memory>
 #include <string>
-#include <thread>
 
 class Image;
 
@@ -18,7 +17,7 @@ public:
 	Window& operator=(const Window&) = delete;
 	~Window();
 
-	void SetImage(Image* image);
+	void SetImage(std::shared_ptr<Image> image);
 	void SetTitle(std::string title);
 
 	void Show();
@@ -30,7 +29,7 @@ private:
 
 	// Display data
 	std::unique_ptr<uint8_t[]> framebuffer;
-	Image* image;
+	std::shared_ptr<Image> image;
 
 	// Window properties
 	std::string title;
@@ -41,10 +40,7 @@ private:
 	// Image location
 	uint32_t locX;
 	uint32_t locY;
-
-	// Multithreading
-	std::thread thread;
-	bool run;
+	uint32_t zoom;
 
 };
 

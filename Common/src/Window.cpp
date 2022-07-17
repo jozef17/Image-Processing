@@ -20,7 +20,7 @@ void KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods
 
 Window::Window(uint32_t width, uint32_t height) 
 	: width(width), height(height), locX(0), locY(0), 
-	  image(nullptr), window(nullptr), run(false)
+	  zoom(1), image(nullptr), window(nullptr), run(false)
 {
 	this->framebuffer = std::unique_ptr<uint8_t[]>(new uint8_t[width * height * 3]);
 	for (uint32_t i = 0; i < width * height * 3; i++)
@@ -31,10 +31,6 @@ Window::Window(uint32_t width, uint32_t height)
 
 Window::~Window()
 {
-	// Stop thread
-	run = false;
-	this->thread.join();
-
 	// Cleanup
 	if (!this->window)
 	{
@@ -45,7 +41,7 @@ Window::~Window()
 	}
 }
 
-void Window::SetImage(Image* image)
+void Window::SetImage(std::shared_ptr<Image> image)
 {
 	this->image = image;
 }
@@ -57,11 +53,6 @@ void Window::SetTitle(std::string title)
 
 void Window::Show()
 {
-	if (this->run)
-	{
-		throw RuntimeException("Window is already open");
-	}
-
 	if (!glfwInit())
 	{
 		throw Exception("Failed to initialize glfw");
@@ -78,28 +69,24 @@ void Window::Show()
 	glfwSetKeyCallback((GLFWwindow*)this->window, KeyCallback);
 	glfwMakeContextCurrent((GLFWwindow*)this->window);
 
-	this->run = true;
+	// Displaying framebuffer
+	while (!glfwWindowShouldClose((GLFWwindow*)this->window) && this->run)
 	{
-		// Displaying framebuffer
-		while (!glfwWindowShouldClose((GLFWwindow*)this->window) && this->run)
-		{
-			UpdateFramebuffer();
+		UpdateFramebuffer();
 
-			int w, h;
-			glViewport(0, 0, this->width, this->height);
-			glfwGetFramebufferSize((GLFWwindow*)this->window, &w, &h);
-			glClear(GL_COLOR_BUFFER_BIT);
-			glDrawPixels(this->width, this->height, GL_RGB, GL_UNSIGNED_BYTE, this->framebuffer.get());
-			glfwSwapBuffers((GLFWwindow*)this->window);
-			glfwPollEvents();
-		}
-
-		// Cleanup
-		glfwDestroyWindow((GLFWwindow*)this->window);
-		glfwTerminate();
-		this->window = nullptr;
-		this->run = false;
+		int w, h;
+		glViewport(0, 0, this->width, this->height);
+		glfwGetFramebufferSize((GLFWwindow*)this->window, &w, &h);
+		glClear(GL_COLOR_BUFFER_BIT);
+		glDrawPixels(this->width, this->height, GL_RGB, GL_UNSIGNED_BYTE, this->framebuffer.get());
+		glfwSwapBuffers((GLFWwindow*)this->window);
+		glfwPollEvents();
 	}
+
+	// Cleanup
+	glfwDestroyWindow((GLFWwindow*)this->window);
+	glfwTerminate();
+	this->window = nullptr;
 }
 
 void Window::UpdateFramebuffer()
@@ -114,7 +101,7 @@ void Window::UpdateFramebuffer()
 	{
 		for (uint32_t j = 0; j < this->width; j++) // x
 		{
-			auto pixel = this->image->GetPixel(j + this->locX, i + this->locY);
+			auto pixel = this->image->GetPixel(j / this->zoom + this->locX, i / this->zoom + this->locY);
 			auto rgb = pixel.ToRGB();
 			this->framebuffer[index++] = rgb.red;
 			this->framebuffer[index++] = rgb.green;
@@ -151,11 +138,11 @@ void Window::HandleKeyPress(uint16_t key)
 		break;
 	case GLFW_KEY_KP_SUBTRACT:
 	case GLFW_KEY_MINUS:
-		// TODO zoom out
+		this->zoom = this->zoom < 2 ? 1 : this->zoom - 1;
 		break;
 	case GLFW_KEY_KP_ADD:
 	case GLFW_KEY_EQUAL:
-		// TODO zoom in
+		this->zoom = this->zoom > 4 ? 5 : this->zoom + 1;
 		break;
 	}
 }
