@@ -27,4 +27,4 @@ endif()
 
 # Projects
 add_subdirectory ("Common")
-
+add_subdirectory ("ImageViewer")

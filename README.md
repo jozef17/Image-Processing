@@ -9,6 +9,12 @@ Static library containing shared functionality
 ### BitmapImage
 - Loads image data from .bmp file
 
+### CommandLineOption
+- Encapsulates command line option and its parameters
+
+### CommandLineParser
+- Parses command line arguments
+
 ### Exception
 - Exception for differentiating between project exceptions and standard exceptions
 
@@ -38,7 +44,15 @@ Static library containing shared functionality
 
 ### Window
 - Displaying images
-- Arrow keay and WASD for moving image
+- Arrow keys and WASD for moving image
+- \+ and - for zoom in and out
 
 ### YCbCrPixel
 - Structure for encapsulating YCbCr data
+
+## Image Viewer
+- Application for displaying raw and bmp images
+- Uses strategy pattern to handle commandline arguments
+    - **-h** or **--help**: displays help
+    - **-f** or **--file**: bitmap image file to be displayed
+    - **-f *\<width>* *\<height>*** or **--file *\<width>* *\<height>***: raw image file to be displayed followed by its width and height
