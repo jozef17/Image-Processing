@@ -78,6 +78,6 @@ TEST(ImageTest, BitmapImageReadError)
 	catch (Exception& exception)
 	{
 		std::string message = exception.what();
-		EXPECT_EQ(message, "Unable to open file: \"img.raw\"");
+		EXPECT_EQ(message, "Unable to open file: \"img.bmp\"");
 	}
 }
