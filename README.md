@@ -56,3 +56,5 @@ Static library containing shared functionality
     - **-h** or **--help**: displays help
     - **-f** or **--file**: bitmap image file to be displayed
     - **-f *\<width>* *\<height>*** or **--file *\<width>* *\<height>***: raw image file to be displayed followed by its width and height
+
+    ![Demo](ImageViewer/media/ImageViewer.gif)
