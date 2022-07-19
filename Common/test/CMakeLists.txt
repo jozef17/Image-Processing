@@ -1,9 +1,9 @@
-﻿# Image static library
-cmake_minimum_required (VERSION 3.8)
+﻿cmake_minimum_required (VERSION 3.8)
 
 set(SOURCES
-   ImageTest.cpp
-   PixelTest.cpp
+	CommandLineParserTest.cpp
+	ImageTest.cpp
+	PixelTest.cpp
 )
 
 add_executable(CommonTests ${SOURCES})
