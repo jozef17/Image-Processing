@@ -12,6 +12,7 @@ set(SOURCES
 )
 
 set(INCLUDES
+   include/ArgumentHandler.hpp
    include/BitmapImage.hpp
    include/CommandLineOption.hpp
    include/CommandLineParser.hpp

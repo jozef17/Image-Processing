@@ -9,7 +9,6 @@ set(SOURCES
 )
 
 set(INCLUDES
-   include/ArgumentHandler.hpp
    include/HandlerManager.hpp
    include/HelpHandler.hpp
    include/ImageHandler.hpp
