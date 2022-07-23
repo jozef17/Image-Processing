@@ -1,14 +1,14 @@
 #include "HandlerManager.hpp"
-#include "HelpHandler.hpp"
-#include "InvalidInputHandler.hpp"
 #include "ImageHandler.hpp"
+#include "PrintMessageHandler.hpp"
+#include "MessageConst.hpp"
 
 std::unique_ptr<ArgumentHandler> HandlerManager::GetHandler(const std::map<std::string, std::vector<std::string>>& options)
 {
 	if (options.find("-h") != options.end() ||
 		options.find("--help") != options.end())
 	{
-		return std::unique_ptr<ArgumentHandler>(new HelpHandler());
+		return std::unique_ptr<ArgumentHandler>(new PrintMessageHandler(HELP_MESSAGE));
 	}
 
 	if (options.find("-f") != options.end() ||
@@ -27,5 +27,5 @@ std::unique_ptr<ArgumentHandler> HandlerManager::GetHandler(const std::map<std::
 		}
 	}
 
-	return std::unique_ptr<ArgumentHandler>(new InvalidInputHandler());
+	return std::unique_ptr<ArgumentHandler>(new PrintMessageHandler(INVALID_INPUT_MESSAGE));
 }

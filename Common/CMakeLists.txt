@@ -6,6 +6,7 @@ set(SOURCES
    src/CommandLineParser.cpp
    src/Image.cpp
    src/Pixel.cpp
+   src/PrintMessageHandler.cpp
    src/RAWImage.cpp
    src/Window.cpp
 )
@@ -17,6 +18,7 @@ set(INCLUDES
    include/Exception.hpp
    include/Image.hpp
    include/Pixel.hpp
+   include/PrintMessageHandler.hpp
    include/RAWImage.hpp
    include/Window.hpp
 )
