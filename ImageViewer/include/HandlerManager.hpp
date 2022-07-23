@@ -5,9 +5,10 @@
 
 #include <memory>
 #include <vector>
+#include <string>
+#include <map>
 
 class ArgumentHandler;
-class CommandLineOption;
 
 class HandlerManager final
 {
@@ -15,7 +16,7 @@ public:
 	HandlerManager() = delete;
 	~HandlerManager() = delete;
 
-	static std::unique_ptr<ArgumentHandler> GetHandler(const std::vector<CommandLineOption> &options);
+	static std::unique_ptr<ArgumentHandler> GetHandler(const std::map<std::string, std::vector<std::string>> &options);
 
 };
 

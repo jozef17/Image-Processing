@@ -1,6 +1,5 @@
 #include "ArgumentHandler.hpp"
 #include "CommandLineParser.hpp"
-#include "CommandLineOption.hpp"
 #include "Exception.hpp"
 #include "HandlerManager.hpp"
 

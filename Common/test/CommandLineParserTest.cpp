@@ -1,7 +1,5 @@
 #include <gtest/gtest.h>
 #include "CommandLineParser.hpp"
-#include "CommandLineOption.hpp"
-
 
 TEST(CommandLineParserTest, NoOption)
 {
@@ -17,7 +15,7 @@ TEST(CommandLineParserTest, OneOption)
 	auto result = CommandLineParser::GetArguments(2, argv);
 
 	EXPECT_EQ(result.size(), 1);
-	EXPECT_EQ(result.at(0).GetOption(), "--help");
+	EXPECT_EQ(result["--help"].size(), 0);
 }
 
 TEST(CommandLineParserTest, MultipleOption)
@@ -26,9 +24,7 @@ TEST(CommandLineParserTest, MultipleOption)
 	auto result = CommandLineParser::GetArguments(4, argv);
 
 	EXPECT_EQ(result.size(), 2);
-	EXPECT_EQ(result.at(0).GetOption(), "--version");
-	EXPECT_EQ(result.at(1).GetOption(), "--directory");
-	EXPECT_EQ(result.at(0).GetParameters().size(), 0);
-	EXPECT_EQ(result.at(1).GetParameters().size(), 1);
-	EXPECT_EQ(result.at(1).GetParameters().at(0), "./");
+	EXPECT_EQ(result.at("--version").size(), 0);
+	EXPECT_EQ(result.at("--directory").size(), 1);
+	EXPECT_EQ(result.at("--directory").at(0), "./");
 }
