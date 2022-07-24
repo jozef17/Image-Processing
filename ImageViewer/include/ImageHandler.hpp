@@ -21,7 +21,7 @@ public:
 	virtual int Run() override;
 
 private:
-	std::shared_ptr<Image> image;
+	std::unique_ptr<Image> image;
 	std::string filename;
 
 };
