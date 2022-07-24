@@ -1,6 +1,7 @@
 #include "HandlerManager.hpp"
 #include "PrintMessageHandler.hpp"
 #include "MessageConst.hpp"
+#include "Kernel.hpp"
 
 std::unique_ptr<ArgumentHandler> HandlerManager::GetHandler(const std::map<std::string, std::vector<std::string>>& options)
 {
@@ -10,10 +11,37 @@ std::unique_ptr<ArgumentHandler> HandlerManager::GetHandler(const std::map<std::
 		return std::unique_ptr<ArgumentHandler>(new PrintMessageHandler(HELP_MESSAGE));
 	}
 
+	if (options.find("-p") != options.end() ||
+		options.find("--print") != options.end())
+	{
+		auto kernel = Kernel::GetKernel("IDENTITY");
+		if (options.find("-k") != options.end() && options.at("-k").size() > 0)
+		{
+			kernel = Kernel::GetKernel(options.at("-k").at(0));
+		}
+		if (options.find("--kernel") != options.end() && options.at("--kernel").size() > 0)
+		{
+			kernel = Kernel::GetKernel(options.at("--kernel").at(0));
+		}
 
-	// TODO handle print kernel
+		return std::unique_ptr<ArgumentHandler>(new PrintMessageHandler(kernel.ToString()));
+	}
 
-	// Todo handle convolution
+	if (options.find("-f") != options.end() ||
+		options.find("--file") != options.end())
+	{
+		auto kernel = Kernel::GetKernel("IDENTITY");
+		if (options.find("-k") != options.end() && options.at("-k").size() > 0)
+		{
+			kernel = Kernel::GetKernel(options.at("-k").at(0));
+		}
+		if (options.find("--kernel") != options.end() && options.at("--kernel").size() > 0)
+		{
+			kernel = Kernel::GetKernel(options.at("--kernel").at(0));
+		}
+
+		// TODO handle convolution
+	}
 
 	return std::unique_ptr<ArgumentHandler>(new PrintMessageHandler(INVALID_INPUT_MESSAGE));
 }

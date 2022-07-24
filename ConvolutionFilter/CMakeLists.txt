@@ -2,11 +2,13 @@
 
 set(SOURCES
    src/HandlerManager.cpp
+   src/Kernel.cpp
    src/Main.cpp
 )
 
 set(INCLUDES
    include/HandlerManager.hpp
+   include/Kernel.hpp
    include/MessageConst.hpp
 )
 
