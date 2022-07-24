@@ -9,7 +9,7 @@
 class PrintMessageHandler : public ArgumentHandler
 {
 public: 
-	PrintMessageHandler(std::string message);
+	PrintMessageHandler(std::string message) noexcept;
 
 	virtual int Run() override;
 

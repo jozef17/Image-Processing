@@ -1,7 +1,7 @@
 #include "PrintMessageHandler.hpp"
 #include <iostream>
 
-PrintMessageHandler::PrintMessageHandler(std::string message) : message(message)
+PrintMessageHandler::PrintMessageHandler(std::string message) noexcept : message(message)
 {}
 
 int PrintMessageHandler::Run()
