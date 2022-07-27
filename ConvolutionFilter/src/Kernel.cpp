@@ -10,7 +10,7 @@ Kernel::Kernel(uint16_t width, uint16_t height, std::vector<float> kernelData)
 	: width(width), height(height), kernel(kernelData)
 {}
 
-Kernel::Kernel(std::string filename)
+Kernel::Kernel(const std::string &filename)
 {
 	std::ifstream file(filename);
 	if (!file.is_open())
@@ -26,7 +26,7 @@ Kernel::Kernel(std::string filename)
 		{
 			this->kernel.push_back(std::stof(in));
 		}
-		catch (std::exception& ex)
+		catch (std::exception)
 		{
 			std::string errMsg = "Invalid file formating in \"" + filename + "\". Input no. " + std::to_string(this->kernel.size()+1) +
 				": \"" + in + "\" is not a number";
@@ -34,7 +34,7 @@ Kernel::Kernel(std::string filename)
 		}
 	}
 
-	this->width = std::sqrt(this->kernel.size());
+	this->width = static_cast<uint16_t>(std::sqrt(this->kernel.size()));
 	this->height = this->width;
 }
 

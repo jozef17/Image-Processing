@@ -52,15 +52,25 @@ Static library containing shared functionality
 ### YCbCrPixel
 - Structure for encapsulating YCbCr data
 
-## (WIP) Convolution Filter
-- WIP
+## [Convolution Filter](ConvolutionFilter)
+- Application for applying convolution filter on input image
+- Parallelised using std::thread
+- Displays result in a winfow
+- Uses strategy pattern to handle commandline arguments:
+    - **-h** or **--help**: displays help
+    - **-f** or **--file**: followed by path to bitmap image file to be displayed
+    - **-f *\<file>* *\<width>* *\<height>*** or **--file *\<width>* *\<height>***: raw image file to be displayed followed by its width and height
+    - **-k** or **--kernel**: specifies kernel to be applyed, supports list of pre-defined kernels or a file input (input file must contain only numbers separated by space)
+    - **-p** or **--print**: prints out kernel specified with --kernel option
+
+TODO demo image
 
 ## [Image Viewer](ImageViewer)
 - Application for displaying raw and bmp images
-- Uses strategy pattern to handle commandline arguments
+- Uses strategy pattern to handle commandline arguments:
     - **-h** or **--help**: displays help
-    - **-f** or **--file**: bitmap image file to be displayed
-    - **-f *\<width>* *\<height>*** or **--file *\<width>* *\<height>***: raw image file to be displayed followed by its width and height
+    - **-f** or **--file**: followed by path to bitmap image file to be displayed
+    - **-f *\<file>* *\<width>* *\<height>*** or **--file *\<width>* *\<height>***: raw image file to be displayed followed by its width and height
 
 ![Demo](ImageViewer/media/ImageViewer.gif)
 

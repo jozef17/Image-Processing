@@ -11,6 +11,7 @@ class Image
 {
 public:
 	Image(uint32_t width, uint32_t height);
+	~Image();
 
 	uint32_t GetWidth() const;
 	uint32_t GetHeight() const;

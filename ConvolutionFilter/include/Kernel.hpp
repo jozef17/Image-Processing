@@ -21,7 +21,7 @@ public:
 
 private:
 	Kernel(uint16_t width, uint16_t height, std::vector<float> kernelData);
-	Kernel(std::string file);
+	Kernel(const std::string& file);
 
 	std::vector<float> kernel;
 	uint16_t width;
