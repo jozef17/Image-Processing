@@ -31,7 +31,7 @@ public:
 	Window& operator=(const Window&) = delete;
 	~Window();
 
-	void SetImage(std::unique_ptr<Image> image);
+	void SetImage(std::shared_ptr<Image> image);
 	void SetTitle(std::string title);
 
 	void Show();
@@ -52,7 +52,7 @@ private:
 	void UpdateView();
 
 	// Display data
-	std::unique_ptr<Image> image;
+	std::shared_ptr<Image> image;
 	Framebuffer framebuffer;
 
 	// Window view 

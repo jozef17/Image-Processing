@@ -8,12 +8,12 @@
 
 ImageHandler::ImageHandler(std::string filename) : filename(filename)
 {
-	this->image = std::unique_ptr<Image>(new BitmapImage(filename));
+	this->image = std::shared_ptr<Image>(new BitmapImage(filename));
 }
 
 ImageHandler::ImageHandler(std::string filename, uint32_t width, uint32_t height) : filename(filename)
 {
-	this->image = std::unique_ptr<Image>(new RAWImage(filename, width, height));
+	this->image = std::shared_ptr<Image>(new RAWImage(filename, width, height));
 }
 
 ImageHandler::~ImageHandler()
@@ -26,7 +26,7 @@ int ImageHandler::Run()
 
 	Window window(width,height);
 
-	window.SetImage(std::move(this->image));
+	window.SetImage(this->image);
 	window.SetTitle(this->filename);
 	window.Show();
 

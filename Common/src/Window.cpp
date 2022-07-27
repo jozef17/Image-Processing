@@ -66,9 +66,9 @@ Window::~Window()
 	}
 }
 
-void Window::SetImage(std::unique_ptr<Image> image)
+void Window::SetImage(std::shared_ptr<Image> image)
 {
-	this->image = std::move(image);
+	this->image = image;
 }
 
 void Window::SetTitle(std::string title)
