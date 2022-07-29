@@ -1,26 +1,25 @@
 #include "CommandLineParser.hpp"
-#include "CommandLineOption.hpp"
 
 #include <string>
 #include <iostream>
 
-std::vector<CommandLineOption> CommandLineParser::GetArguments(int argc, char* argv[]) noexcept
+std::map<std::string, std::vector<std::string>> CommandLineParser::GetArguments(int argc, char* argv[]) noexcept
 {
-	std::vector<CommandLineOption> options;
+	std::map<std::string, std::vector<std::string>> options;
 
-	CommandLineOption *arg = nullptr;
+	std::string option = "";
 	for (int i = 1; i < argc; i++)
 	{
 		std::string val = argv[i];
 		if (val.at(0) == '-')
 		{
-			CommandLineOption cmdArg = { val };
-			options.push_back(cmdArg);
-			arg = &options.back();
+			std::vector<std::string> arg;
+			options[val] = arg;
+			option = val;
 		}
 		else
 		{
-			arg->SetParameter(val);
+			options[option].push_back(val);
 		}
 	}
 

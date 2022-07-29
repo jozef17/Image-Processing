@@ -3,21 +3,22 @@ cmake_minimum_required(VERSION 3.8)
 
 set(SOURCES
    src/BitmapImage.cpp
-   src/CommandLineOption.cpp
    src/CommandLineParser.cpp
    src/Image.cpp
    src/Pixel.cpp
+   src/PrintMessageHandler.cpp
    src/RAWImage.cpp
    src/Window.cpp
 )
 
 set(INCLUDES
+   include/ArgumentHandler.hpp
    include/BitmapImage.hpp
-   include/CommandLineOption.hpp
    include/CommandLineParser.hpp
    include/Exception.hpp
    include/Image.hpp
    include/Pixel.hpp
+   include/PrintMessageHandler.hpp
    include/RAWImage.hpp
    include/Window.hpp
 )

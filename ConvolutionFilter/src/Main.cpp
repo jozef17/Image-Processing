@@ -1,13 +1,13 @@
+#include "HandlerManager.hpp"
 #include "ArgumentHandler.hpp"
 #include "CommandLineParser.hpp"
 #include "Exception.hpp"
-#include "HandlerManager.hpp"
 
 #include <iostream>
 
 int main(int argc, char* argv[])
 {
-	try 
+	try
 	{
 		auto options = CommandLineParser::GetArguments(argc, argv);
 		auto handler = HandlerManager::GetHandler(options);

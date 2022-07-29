@@ -3,6 +3,8 @@
 #ifndef COMMAND_LINE_PARSER_HPP__
 #define COMMAND_LINE_PARSER_HPP__
 
+#include <map>
+#include <string>
 #include <vector>
 
 class CommandLineOption;
@@ -13,7 +15,7 @@ public:
 	CommandLineParser() = delete;
 	~CommandLineParser() = delete;
 
-	static std::vector<CommandLineOption> GetArguments(int argc, char* argv[]) noexcept;
+	static std::map<std::string,std::vector<std::string>> GetArguments(int argc, char* argv[]) noexcept;
 
 };
 

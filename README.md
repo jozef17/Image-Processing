@@ -1,4 +1,4 @@
-# Image-Processing
+# Image Processing
 - CMake based projects related to Image Processing
 - C++14
 - Unit tests written for Google Test framework
@@ -9,11 +9,9 @@ Static library containing shared functionality
 ### BitmapImage
 - Loads image data from .bmp file
 
-### CommandLineOption
-- Encapsulates command line option and its parameters
-
 ### CommandLineParser
 - Parses command line arguments
+- Creates key-value pairs of command line option and its argument list
 
 ### Exception
 - Exception for differentiating between project exceptions and standard exceptions
@@ -26,7 +24,11 @@ Static library containing shared functionality
 ![Demo](Common/media/Image.png)
 
 ### Pixel
-- Contains conversion to RGB, RGBA or YCbCr
+- Represents pixel
+- Enables conversion to:
+   - RGB 
+   - RGBA 
+   - YCbCr
 
 ![Demo](Common/media/Pixel.png)
 
@@ -50,11 +52,29 @@ Static library containing shared functionality
 ### YCbCrPixel
 - Structure for encapsulating YCbCr data
 
-## Image Viewer
-- Application for displaying raw and bmp images
-- Uses strategy pattern to handle commandline arguments
-    - **-h** or **--help**: displays help
-    - **-f** or **--file**: bitmap image file to be displayed
-    - **-f *\<width>* *\<height>*** or **--file *\<width>* *\<height>***: raw image file to be displayed followed by its width and height
+## [Convolution Filter](ConvolutionFilter)
+- Application for applying convolution filter on input image
+- Parallelised using std::thread
+- Displays result in a winfow
+- Uses strategy pattern to handle commandline arguments:
+    - `-h` or `--help`: displays help
+    - `-f` or `--file`: followed by path to bitmap image file to be displayed
+    - `-f <file> <width> <height>` or `--file <width> <height>`: raw image file to be displayed followed by its width and height
+    - `-k` or `--kernel`: specifies kernel to be applyed, supports list of pre-defined kernels or a file input (input file must contain only numbers separated by space)
+    - `-p` or `--print`: prints out kernel specified with --kernel option
 
-    ![Demo](ImageViewer/media/ImageViewer.gif)
+### Sharpen
+![Demo](ConvolutionFilter/media/SHARPEN.png)
+
+### Sobel
+![Demo](ConvolutionFilter/media/SOBEL.png)
+
+## [Image Viewer](ImageViewer)
+- Application for displaying raw and bmp images
+- Uses strategy pattern to handle commandline arguments:
+    - `-h` or `--help`: displays help
+    - `-f` or `--file`: followed by path to bitmap image file to be displayed
+    - `-f <file> <width> <height>` or `--file <width> <height>`: raw image file to be displayed followed by its width and height
+
+![Demo](ImageViewer/media/ImageViewer.gif)
+

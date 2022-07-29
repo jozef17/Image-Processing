@@ -2,18 +2,14 @@
 
 set(SOURCES
    src/HandlerManager.cpp
-   src/HelpHandler.cpp
    src/ImageHandler.cpp
-   src/InvalidInputHandler.cpp
-   src/Main.cpp
+   src/Main.cpp   
 )
 
 set(INCLUDES
-   include/ArgumentHandler.hpp
    include/HandlerManager.hpp
-   include/HelpHandler.hpp
    include/ImageHandler.hpp
-   include/InvalidInputHandler.hpp
+   include/MessageConst.hpp
 )
 
 add_executable (ImageViewer ${SOURCES} ${INCLUDES} )
