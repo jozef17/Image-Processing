@@ -23,3 +23,5 @@ target_link_libraries(ConvolutionFilter Common)
 list (APPEND EXTRA_INCLUDES "${CMAKE_CURRENT_LIST_DIR}/include")
 list (APPEND EXTRA_INCLUDES "${CMAKE_SOURCE_DIR}/Common/include")
 target_include_directories (ConvolutionFilter PRIVATE ${EXTRA_INCLUDES})
+
+add_subdirectory("test")
