@@ -9,6 +9,10 @@ Static library containing shared functionality
 ### BitmapImage
 - Loads image data from .bmp file
 
+### BitStreamer
+- Enables accesing series of bytes as a bit stream
+- Reads current bit and increases position
+
 ### CommandLineParser
 - Parses command line arguments
 - Creates key-value pairs of command line option and its argument list
@@ -31,6 +35,17 @@ Static library containing shared functionality
    - YCbCr
 
 ![Demo](Common/media/Pixel.png)
+
+### (WIP) PngImage
+- PNG image decoder
+- Referencess:
+    - [PNG Specification](https://www.w3.org/TR/PNG/)
+    - [RFC 1950 "ZLIB Compressed Data Format Specification"](https://datatracker.ietf.org/doc/html/rfc1950)
+    - [RFC 1951 "DEFLATE Compressed Data Format Specification"](https://datatracker.ietf.org/doc/html/rfc1951)
+
+- TBD Class diagram ?
+- TBD Sequence diagram ?
+- TBD Other UML Ddiagrams ?
 
 ### RawImage
 - Loads image data from RAW image file

@@ -2,24 +2,20 @@
 #include "Pixel.hpp"
 #include "Exception.hpp"
 #include "Common.hpp"
+#include "BitStream.hpp"
 
 #include <fstream>
-#include <vector>
 #include <memory>
 
 #include <iostream>
 #include <cstdint>
 #include <iomanip>
+#include <bitset>
 
-// Chunk header
-struct ChunkHdr
-{
-	uint32_t	lenght;
-	std::string	chunkType;
-};
+#define TO_INT(data)  ((data[0] << 8 * 3) | (data[1] << 8 * 2) | (data[2] << 8 * 1) | data[3])
 
 // Info Header
-PACK(struct IHdr
+PACK(struct IHDR
 {
 	uint8_t width[4];				// image width (note: in little endian, invert byteorder for value)
 	uint8_t height[4];				// image height (note: in little endian, invert byteorder for value)
@@ -30,23 +26,183 @@ PACK(struct IHdr
 	uint8_t interfaceMethod;		// 0 - no interface 1 - ADAM7
 });
 
-// Chunk
-struct Chunk
+enum class ColorType : uint8_t
 {
-	ChunkHdr					header = { 0, { 0,0,0,0 } };
-	uint8_t						crc[4] = { 0,0,0,0 }; // Cyclic redundancy check
-	std::unique_ptr<uint8_t[]>	data;
+	GrayScale      = 0b000,
+	TrueColor      = 0b010, // RGB
+	Indexed        = 0b011,
+	GrayScaleAlpha = 0b100,
+	TrueColorAlpha = 0b110 // RGBA
 };
 
-#define TO_INT(data)  ((data[0] << 8 * 3) | (data[1] << 8 * 2) | (data[2] << 8 * 1) | data[3])
-
-PngImage::PngImage(std::string filename)
+PngImage::PngImage(const std::string& filename)
 {
 	LoadData(filename);
 }
 
-void PngImage::LoadData(std::string filename)
+void PngImage::LoadData(const std::string& filename)
 {
+	auto chunks = LoadChnuks(filename);
+
+	// Process header chunk (ihdr)
+	IHDR ihdr = { 0 };
+	auto ihdrChunk = std::find_if(chunks.begin(), chunks.end(),
+		[](const Chunk& chunk) { return chunk.header.chunkType == "IHDR"; });
+	if (ihdrChunk == chunks.end())
+	{
+		throw RuntimeException("Missing IHDR chunk!");
+	}
+	std::memcpy(&ihdr, ihdrChunk->data.get(), sizeof(IHDR));
+
+	///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	std::cout << ihdrChunk->header.chunkType << std::endl;/////////////////////////////////////////////////////////////////////////////////////////
+	std::cout << "- width:             ";		///////////////////////////////////////////////////////////////////////////////////////////////////
+	for (int i = 0; i < 4; i++)		///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+		std::cout << std::setw(2) << std::setfill('0') << std::hex << (int)ihdr.width[i] << " ";		///////////////////////////////////////////
+	std::cout << " (" << std::dec << (int)(TO_INT(ihdr.width)) << ") ";		///////////////////////////////////////////////////////////////////////
+	std::cout << " [" << std::dec << (int)(this->width) << "]" << std::endl;		///////////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	std::cout << "- height:            ";		///////////////////////////////////////////////////////////////////////////////////////////////////
+	for (int i = 0; i < 4; i++)		///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+		std::cout << std::setw(2) << std::setfill('0') << std::hex << (int)ihdr.height[i] << " ";		///////////////////////////////////////////
+	std::cout << " (" << std::dec << (int)(TO_INT(ihdr.height)) << ") ";		///////////////////////////////////////////////////////////////////
+	std::cout << " [" << std::dec << (int)(this->height) << "]" << std::endl;		///////////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	std::cout << "- chanellSize:       " << std::setw(2) << std::setfill('0') << std::hex << (int)ihdr.chanellSize << std::endl;		///////////
+	std::cout << "- colorType:         " << std::setw(2) << std::setfill('0') << std::hex << (int)ihdr.colorType << std::endl;		///////////////
+	///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+	// Check unsupported types
+	// TODO: implement other color types
+	// NOTE: only RGB & RGBA supported
+	if (static_cast<ColorType>(ihdr.colorType) != ColorType::TrueColor &&
+		static_cast<ColorType>(ihdr.colorType) != ColorType::TrueColorAlpha)
+	{
+		throw RuntimeException("Unsupported color type: \"" + std::to_string(ihdr.colorType) + "\"");
+	}
+
+	// NOTE: ADAM7 not supported
+	if (ihdr.interfaceMethod != 0)
+	{
+		throw RuntimeException("Unsupported interface method: \"" + std::to_string(ihdr.interfaceMethod) + "\"");
+	}
+
+	// Allocate image data
+	this->width = (TO_INT(ihdr.width));
+	this->height = (TO_INT(ihdr.height));
+	this->image = std::unique_ptr<std::unique_ptr<Pixel>[]>(new std::unique_ptr<Pixel>[this->width * this->height]);
+
+	// TODO Process other chunks if needed
+
+	// Merge all IDAT chunks
+	BitStream bitstream;
+	for (auto &c : chunks)
+	{
+		if (c.header.chunkType != "IDAT")
+		{
+			continue;
+		}
+		bitstream.Append(c.data.get(), c.header.lenght);
+
+		///////////////////////////////////////////////////////////////////////////////////////////////
+		std::cout << "------------------------------------------------------------" << std::endl;//////
+		std::cout << "IDAT" << std::endl;//////////////////////////////////////////////////////////////
+		for (int i = 0; i < c.header.lenght; i++)		///////////////////////////////////////////////
+		{		///////////////////////////////////////////////////////////////////////////////////////
+			auto byte = c.data[i];		///////////////////////////////////////////////////////////////
+			for (int j = 0; j < 8; j++)		///////////////////////////////////////////////////////////
+			{		///////////////////////////////////////////////////////////////////////////////////
+				auto bit = byte & 1 << j;		///////////////////////////////////////////////////////
+				std::cout << (bit > 0 ? "1" : "0");		///////////////////////////////////////////////
+			}		///////////////////////////////////////////////////////////////////////////////////
+			std::cout << "  ";		///////////////////////////////////////////////////////////////////
+			if ((i % 5) == 4)		///////////////////////////////////////////////////////////////////
+				std::cout << std::endl;		///////////////////////////////////////////////////////////
+		}		///////////////////////////////////////////////////////////////////////////////////////
+		std::cout << std::endl;////////////////////////////////////////////////////////////////////////
+		std::cout << "------------------------------------------------------------" << std::endl;//////
+		///////////////////////////////////////////////////////////////////////////////////////////////
+	}
+
+	auto idatHdr1 = bitstream.GetCurrentByte();
+	auto idatHdr2 = bitstream.GetCurrentByte();
+
+	// png supports ony compression method - 0x08 "deflate"
+	auto compressionMethod = idatHdr1 & 0x0F;
+	if (compressionMethod != 0x08)
+	{
+		throw RuntimeException("Unsupported compression method: \"" + std::to_string(compressionMethod) + "\"");
+	}
+
+	//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	std::cout << "- data 0    " << std::setw(2) << std::setfill('0') << std::hex << (int)idatHdr1 << " (" << std::bitset<8>(idatHdr1) << ")" << std::endl;////
+	std::cout << "- data 1    " << std::setw(2) << std::setfill('0') << std::hex << (int)idatHdr2 << " (" << std::bitset<8>(idatHdr2) << ")" << std::endl;////
+	std::cout << "   - Compression method " << std::setw(2) << std::setfill('0') << std::dec << (int)compressionMethod << std::endl;//////////////////////////
+	std::cout << "   - Compression info   " << std::setw(2) << std::setfill('0') << std::dec << (int)(idatHdr1 >> 4) << std::endl;////////////////////////////
+	std::cout << "   - F Check            " << std::setw(2) << std::setfill('0') << std::dec << (int)(idatHdr2 & 0x1f) << std::endl;//////////////////////////
+	std::cout << "   - F DICT             " << std::setw(2) << std::setfill('0') << std::dec << (int)((idatHdr2 >> 5) & 0x1) << std::endl;////////////////////
+	std::cout << "   - F Level            " << std::setw(2) << std::setfill('0') << std::dec << (int)(idatHdr2 >> 6) << std::endl;////////////////////////////
+	//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+	bool isLast = false;
+	do
+	{
+		isLast = bitstream.GetNext();
+		auto typeBit1 = bitstream.GetNext();
+		auto typeBit2 = bitstream.GetNext();
+
+		// TODO verify order of bites!!!
+		if (!typeBit2 && !typeBit1) // 00
+		{
+			std::cout << "No Compression" << std::endl;
+		}
+		if (!typeBit2 && typeBit1) // 01
+		{
+			std::cout << "Compressed with fixed Huffman codes" << std::endl;
+		}
+		if (typeBit2 && !typeBit1) // 10
+		{
+			std::cout << "compressed with dynamic Huffman codes" << std::endl;
+			// TODO
+
+
+//			   11100  00011100  00000101  10000000  00000000
+//			00000000  00000010  00011000  00101111  01111111
+//			10010101  10110011  10000111  01100000  00100000
+//			00000000  00000000  00000000  00000000  00000000
+
+		}
+		if (!typeBit2 && typeBit1) // 11
+		{
+			throw RuntimeException("Invalid DEFLATE type specifier");
+		}
+	} while (!isLast);
+
+
+	// TODO
+
+
+	///////////////////////////////////////////////////////////////////////////////////////////////
+	std::cout << std::endl;	///////////////////////////////////////////////////////////////////////
+	for (int i = 0; i < 20; i++)	///////////////////////////////////////////////////////////////
+	{	///////////////////////////////////////////////////////////////////////////////////////////
+		for (int j = 0; j < 8; j++)	///////////////////////////////////////////////////////////////
+		{	///////////////////////////////////////////////////////////////////////////////////////
+			auto bit = bitstream.GetNext();	///////////////////////////////////////////////////////
+			std::cout << bit;	///////////////////////////////////////////////////////////////////
+		}	///////////////////////////////////////////////////////////////////////////////////////
+		std::cout << "  ";	///////////////////////////////////////////////////////////////////////
+		if ((i % 5) == 4)	///////////////////////////////////////////////////////////////////////
+			std::cout << std::endl;	///////////////////////////////////////////////////////////////
+	}	///////////////////////////////////////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////////////////////////////////
+
+}
+
+std::vector<Chunk> PngImage::LoadChnuks(const std::string& filename)
+{
+	std::vector<Chunk> chunks;
+
 	// Check file
 	std::ifstream file(filename, std::ios::binary);
 	if (!file.is_open())
@@ -57,9 +213,13 @@ void PngImage::LoadData(std::string filename)
 	// Check if png data
 	uint8_t signature[8];
 	file.read((char*)signature, sizeof(signature));
-	// TODO check if equal to 89 50 4E 47 0D 0A 1A 0A
+	uint8_t reference[8] = { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A };
+	if (std::memcmp(signature, reference, 8) != 0)
+	{
+		throw RuntimeException("Not a png file (" + filename + ")!");
+	}
 
-	std::vector<Chunk> chunks;
+	// Load chnuks
 	while (file)
 	{
 		Chunk chunk;
@@ -67,7 +227,6 @@ void PngImage::LoadData(std::string filename)
 		// Read  size
 		uint8_t data[4];
 		file.read((char*)data, 4);
-
 		chunk.header.lenght = TO_INT(data);
 		/////////////////////////////////////////////////////////////////////////////////////////////////////////
 		std::cout << "Size: " << std::dec << chunk.header.lenght << std::endl;		/////////////////////////////
@@ -75,7 +234,7 @@ void PngImage::LoadData(std::string filename)
 
 		// Read chunk type
 		file.read((char*)data, 4);
-		chunk.header.chunkType = std::string((char *)data, 4);
+		chunk.header.chunkType = std::string((char*)data, 4);
 		/////////////////////////////////////////////////////////////////////////////////////////////////////////
 		std::cout << "Type: " << chunk.header.chunkType << std::endl;;		/////////////////////////////////////
 		/////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -89,6 +248,8 @@ void PngImage::LoadData(std::string filename)
 		{		/////////////////////////////////////////////////////////////////////////////////////////////////
 			std::cout << std::setw(2) << std::setfill('0') << std::hex << (int)chunk.data[i] << " ";		/////
 		}		/////////////////////////////////////////////////////////////////////////////////////////////////
+		if (chunk.header.lenght > 100)		/////////////////////////////////////////////////////////////////////
+			std::cout << "...";		/////////////////////////////////////////////////////////////////////////////
 		std::cout << std::endl;		/////////////////////////////////////////////////////////////////////////////
 		/////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -104,34 +265,15 @@ void PngImage::LoadData(std::string filename)
 		std::cout << std::endl;		/////////////////////////////////////////////////////////////////////////////
 		/////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-		// TODO add to vector
-		auto type = chunk.header.chunkType;
-		chunks.push_back(std::move(chunk));
-
-		// Last chunk
-		if (type == std::string("IEND"))
+		// Is last chunk
+		if (chunk.header.chunkType == std::string("IEND"))
 		{
+			chunks.push_back(std::move(chunk)); // append chunks
 			break;
 		}
+		chunks.push_back(std::move(chunk));// append chunks
 	}
-
-	// Process header (ihdr)
-	for (auto& chunk : chunks)
-	{
-		if (chunk.header.chunkType != "IHDR")
-		{
-			continue;
-		}
-
-		// IHdr
-
-		// TODO
-		break;
-	}
-
-	// TODO
-	// TODO
-	// TODO
 
 	file.close();
+	return chunks;
 }
