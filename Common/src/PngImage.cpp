@@ -70,6 +70,7 @@ void PngImage::LoadData(const std::string& filename)
 	///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	std::cout << "- chanellSize:       " << std::setw(2) << std::setfill('0') << std::hex << (int)ihdr.chanellSize << std::endl;		///////////
 	std::cout << "- colorType:         " << std::setw(2) << std::setfill('0') << std::hex << (int)ihdr.colorType << std::endl;		///////////////
+	std::cout << "- compressionMethod: " << std::setw(2) << std::setfill('0') << std::hex << (int)ihdr.compressionMethod << std::endl;		///////
 	///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 	// Check unsupported types
@@ -87,6 +88,9 @@ void PngImage::LoadData(const std::string& filename)
 		throw RuntimeException("Unsupported interface method: \"" + std::to_string(ihdr.interfaceMethod) + "\"");
 	}
 
+	// Only LZ77 is supported by png
+	// TODOCheck compression method to be 0 
+
 	// Allocate image data
 	this->width = (TO_INT(ihdr.width));
 	this->height = (TO_INT(ihdr.height));
@@ -96,7 +100,7 @@ void PngImage::LoadData(const std::string& filename)
 
 	// Merge all IDAT chunks
 	BitStream bitstream;
-	for (auto &c : chunks)
+	for (auto& c : chunks)
 	{
 		if (c.header.chunkType != "IDAT")
 		{
@@ -115,9 +119,9 @@ void PngImage::LoadData(const std::string& filename)
 				auto bit = byte & 1 << j;		///////////////////////////////////////////////////////
 				std::cout << (bit > 0 ? "1" : "0");		///////////////////////////////////////////////
 			}		///////////////////////////////////////////////////////////////////////////////////
-			std::cout << "  ";		///////////////////////////////////////////////////////////////////
-			if ((i % 5) == 4)		///////////////////////////////////////////////////////////////////
-				std::cout << std::endl;		///////////////////////////////////////////////////////////
+			//std::cout << "  ";		///////////////////////////////////////////////////////////////////
+			//if ((i % 5) == 4)		///////////////////////////////////////////////////////////////////
+			//	std::cout << std::endl;		///////////////////////////////////////////////////////////
 		}		///////////////////////////////////////////////////////////////////////////////////////
 		std::cout << std::endl;////////////////////////////////////////////////////////////////////////
 		std::cout << "------------------------------------------------------------" << std::endl;//////
@@ -144,6 +148,8 @@ void PngImage::LoadData(const std::string& filename)
 	std::cout << "   - F Level            " << std::setw(2) << std::setfill('0') << std::dec << (int)(idatHdr2 >> 6) << std::endl;////////////////////////////
 	//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+	std::vector<uint32_t> data;
+
 	bool isLast = false;
 	do
 	{
@@ -156,23 +162,191 @@ void PngImage::LoadData(const std::string& filename)
 		{
 			std::cout << "No Compression" << std::endl;
 		}
-		if (!typeBit2 && typeBit1) // 01
+		else if (!typeBit2 && typeBit1) // 01
 		{
-			std::cout << "Compressed with fixed Huffman codes" << std::endl;
+			std::cout << "Compressed with fixed codes" << std::endl;
+
+			while (true)
+			{
+				auto bit6 = bitstream.GetNext();
+				auto bit5 = bitstream.GetNext();
+				auto bit4 = bitstream.GetNext();
+				auto bit3 = bitstream.GetNext();
+				auto bit2 = bitstream.GetNext();
+				auto bit1 = bitstream.GetNext();
+				auto bit0 = bitstream.GetNext();
+
+				/*
+				auto bit0 = bitstream.GetNext();
+				auto bit1 = bitstream.GetNext();
+				auto bit2 = bitstream.GetNext();
+				auto bit3 = bitstream.GetNext();
+				auto bit4 = bitstream.GetNext();
+				auto bit5 = bitstream.GetNext();
+				auto bit6 = bitstream.GetNext();//*/
+
+				uint32_t num = (int)bit0 | ((int)bit1 << 1) | ((int)bit2 << 2) | ((int)bit3 << 3) | ((int)bit4 << 4) | ((int)bit5 << 5) | ((int)bit6 << 6);
+//				std::cout << "????????? " << std::setw(3) << std::setfill('0') << std::dec << num << "     " << bit6 << bit5 << bit4 << bit3 << bit2 << bit1 << bit0 << std::endl;
+				// 7bit
+				if (/*!bit6 && !bit5 && */(num <= 23)) // 7bit: 256 - 279
+				{
+					num += 256;
+					std::cout << std::setw(3) << std::setfill('0') << std::dec << num << "     " << bit6 << bit5 << bit4 << bit3 << bit2 << bit1 << bit0 << std::endl;
+					if (num == 256)
+					{
+						break;
+					}
+				}
+				else
+				{
+					// 8bit
+					auto bit7 = bitstream.GetNext();
+					num = (num << 1) | ((int)bit7);
+//					num = num | ((int)bit7 << 7);
+					if ((num >= 48) && (num <= 191)) // 0 - 143
+					{
+						num -= 48;
+						std::cout << std::setw(3) << std::setfill('0') << std::dec << num << "    " << bit7 << bit6 << bit5 << bit4 << bit3 << bit2 << bit1 << bit0 << std::endl;
+					}
+					else if ((num >= 192) && (num <= 199)) // 280 - 287
+					{
+						num -= 88;
+						std::cout << std::setw(3) << std::setfill('0') << std::dec << num << "    " << bit7 << bit6 << bit5 << bit4 << bit3 << bit2 << bit1 << bit0 << std::endl;
+					}
+					else
+					{
+						// 9bit 144 - 255
+						auto bit8 = bitstream.GetNext();
+						num = (num << 1) | ((int)bit8);
+//						num = num | ((int)bit8 << 8);
+//						std::cout << "???????????????????????????????? " << std::setw(3) << std::setfill('0') << std::dec << num << "   " << bit8 << bit7 << bit6 << bit5 << bit4 << bit3 << bit2 << bit1 << bit0 << std::endl;
+						num -= 256;
+						std::cout << std::setw(3) << std::setfill('0') << std::dec << num << "   " << bit8 << bit7 << bit6 << bit5 << bit4 << bit3 << bit2 << bit1 << bit0 << std::endl;
+					}
+				}
+
+				if ((num == 286) || (num == 287))
+				{
+					throw RuntimeException("Invalid length code " + std::to_string(num));
+				}
+
+				// 257..285
+				if ((num >= 257) && (num <= 285))
+				{
+					// handle lengths
+					// num == length code
+					int extra = 0;
+					if (num >= 265 && num <= 268) // 1 extra bit
+					{
+						extra = bitstream.GetNext();
+					}
+					else if (num >= 269 && num <= 272) // 2 extra bits
+					{
+						auto ex0 = bitstream.GetNext();
+						auto ex1 = bitstream.GetNext();
+						extra = (int)ex0 | ((int)ex1 << 1);
+					}
+					else if (num >= 273 && num <= 276)  // 3 extra bits
+					{
+						auto ex0 = bitstream.GetNext();
+						auto ex1 = bitstream.GetNext();
+						auto ex2 = bitstream.GetNext();
+						extra = (int)ex0 | ((int)ex1 << 1) | ((int)ex2 << 2);
+					}
+					else if (num >= 277 && num <= 280) // 4 extra bits
+					{
+						auto ex0 = bitstream.GetNext();
+						auto ex1 = bitstream.GetNext();
+						auto ex2 = bitstream.GetNext();
+						auto ex3 = bitstream.GetNext();
+						extra = (int)ex0 | ((int)ex1 << 1) | ((int)ex2 << 2) | ((int)ex3 << 3);
+					}
+					else if (num >= 281 && num <= 285) // 5 extra bits
+					{
+						auto ex0 = bitstream.GetNext();
+						auto ex1 = bitstream.GetNext();
+						auto ex2 = bitstream.GetNext();
+						auto ex3 = bitstream.GetNext();
+						auto ex4 = bitstream.GetNext();
+						extra = (int)ex0 | ((int)ex1 << 1) | ((int)ex2 << 2) | ((int)ex3 << 3) | ((int)ex4 << 4);
+					}
+
+
+					auto distBit4 = bitstream.GetNext();
+					auto distBit3 = bitstream.GetNext();
+					auto distBit2 = bitstream.GetNext();
+					auto distBit1 = bitstream.GetNext();
+					auto distBit0 = bitstream.GetNext();
+					/*auto distBit0 = bitstream.GetNext();
+					auto distBit1 = bitstream.GetNext();
+					auto distBit2 = bitstream.GetNext();
+					auto distBit3 = bitstream.GetNext();
+					auto distBit4 = bitstream.GetNext();*/
+
+
+					uint32_t distCode = (int)distBit0 | ((int)distBit1 << 1) | ((int)distBit2 << 2) | ((int)distBit3 << 3) | ((int)distBit4 << 4);
+					std::cout << "extra: " << extra << ", distCode: " << distCode << std::endl;
+
+					if ((distCode == 30) || (distCode == 31))
+					{
+						throw RuntimeException("Invalid distance code " + std::to_string(distCode));
+					}
+
+					if (distCode > 3)
+					{
+						auto c = (distCode - 2) / 2;
+						std::cout << "? " << distCode << ": " << c << std::endl;
+						for (auto k = 0; k < c; k++)
+						{
+							bitstream.GetNext();
+						}
+					}
+
+// 00011000111010101100011000011011100010100001100000001111111110011000011110110101001100010101001111111110011000001010010110110001011111001111111110011001011001011011100000000110100001100000011000001101111011110001110011001111111110000100010010001111111111111100100011000011111111100000000000010000100001111111000010011011
+
+//			00011000  11101010  // Header
+//								1
+//								 10
+//								   00110  00011011  10001010
+//			00011000  00001111  11111000  00000000  
+//			10100000  11101011  01000000  10011110 // check value
+
+//			00011000  11101010  // Header
+//								1 // last
+//								 10 
+//								   00110  00011111  11111111
+//			10010001  10000111  11111100  11000011  11011010
+//			10011000  10101001  11111111  00110000  01101111
+//			01111000  11100110  01111111  11000000  00000000
+//			10011100  01101011  11100000  11110110 // check value
+
+
+/*					auto start = 
+					for (int i = dist; i >= 0; i--)
+					{
+						auto val = data.size() - 1 - i;
+						data.p
+					}*/
+
+//					std::cout << "decode distance from input stream move backwards distance bytes in the output"
+//						<< " stream, and copy length bytes from this position to the output stream." << std::endl;
+				}
+				else
+				{
+					// handle literal
+					data.push_back(num);
+				}
+
+			}
 		}
-		if (typeBit2 && !typeBit1) // 10
+		else if (typeBit2 && !typeBit1) // 10
 		{
 			std::cout << "compressed with dynamic Huffman codes" << std::endl;
 			// TODO
 
 
-//			   11100  00011100  00000101  10000000  00000000
-//			00000000  00000010  00011000  00101111  01111111
-//			10010101  10110011  10000111  01100000  00100000
-//			00000000  00000000  00000000  00000000  00000000
-
 		}
-		if (!typeBit2 && typeBit1) // 11
+		else if (!typeBit2 && typeBit1) // 11
 		{
 			throw RuntimeException("Invalid DEFLATE type specifier");
 		}
@@ -182,7 +356,7 @@ void PngImage::LoadData(const std::string& filename)
 	// TODO
 
 
-	///////////////////////////////////////////////////////////////////////////////////////////////
+	/*//////////////////////////////////////////////////////////////////////////////////////////////
 	std::cout << std::endl;	///////////////////////////////////////////////////////////////////////
 	for (int i = 0; i < 20; i++)	///////////////////////////////////////////////////////////////
 	{	///////////////////////////////////////////////////////////////////////////////////////////
@@ -195,7 +369,7 @@ void PngImage::LoadData(const std::string& filename)
 		if ((i % 5) == 4)	///////////////////////////////////////////////////////////////////////
 			std::cout << std::endl;	///////////////////////////////////////////////////////////////
 	}	///////////////////////////////////////////////////////////////////////////////////////////
-	///////////////////////////////////////////////////////////////////////////////////////////////
+	//////////////////////////////////////////////////////////////////////////////////////////////*/
 
 }
 
