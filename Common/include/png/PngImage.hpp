@@ -5,8 +5,11 @@
 
 #include <string>
 #include <vector>
+#include <fstream>
 
 #include "Image.hpp"
+
+class BitStream;
 
 // Chunk header
 struct ChunkHdr
@@ -29,9 +32,11 @@ public:
 	PngImage(const std::string& filename);
 
 private:
-	void LoadData(const std::string& filename);
+	std::unique_ptr<Chunk> LoadChnuk(std::ifstream& file);
 
-	std::vector<Chunk> LoadChnuks(const std::string& filename);
+	void ProcessHeader(std::unique_ptr<Chunk> &header);
+
+	void ProcessData(BitStream& bitstream);
 
 };
 

@@ -29,3 +29,5 @@ endif()
 add_subdirectory ("Common")
 add_subdirectory ("ConvolutionFilter")
 add_subdirectory ("ImageViewer")
+
+add_subdirectory ("TMP")

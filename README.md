@@ -2,6 +2,12 @@
 - CMake based projects related to Image Processing
 - C++14
 - Unit tests written for Google Test framework
+- All project support following image formats:
+    - RAW
+    - Bitmap (.bmp)
+    - Portable Network Graphics (.png)
+        - RGB and RGBA only
+        - [DAM7](https://en.wikipedia.org/wiki/Adam7_algorithm) is not supported
 
 ## Common
 Static library containing shared functionality
@@ -42,7 +48,9 @@ Static library containing shared functionality
     - [PNG Specification](https://www.w3.org/TR/PNG/)
     - [RFC 1950 "ZLIB Compressed Data Format Specification"](https://datatracker.ietf.org/doc/html/rfc1950)
     - [RFC 1951 "DEFLATE Compressed Data Format Specification"](https://datatracker.ietf.org/doc/html/rfc1951)
-
+- Unsupported features:
+    - Only RGB and RGBA pixel formats are supported
+    - Interface method [DAM7](https://en.wikipedia.org/wiki/Adam7_algorithm) is not supported
 - TBD Class diagram ?
 - TBD Sequence diagram ?
 - TBD Other UML Ddiagrams ?

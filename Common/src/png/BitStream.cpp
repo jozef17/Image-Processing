@@ -1,4 +1,4 @@
-#include "BitStream.hpp"
+#include "png/BitStream.hpp"
 
 bool BitStream::GetNext() 
 { 
@@ -56,8 +56,8 @@ void BitStream::Skip(uint32_t bitsToSkip)
 	}
 }
 
-void BitStream::Append(uint8_t* data, uint32_t size)
+void BitStream::Append(std::unique_ptr<uint8_t[]> data, uint32_t size)
 {
-	this->data.push_back(data);
+	this->data.push_back(std::move(data));
 	this->lengths.push_back(size);
 }

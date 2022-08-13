@@ -4,6 +4,7 @@
 #define BIT_STREAM_HPP__
 
 #include <vector>
+#include <memory>
 #include <cstdint>
 
 class BitStream
@@ -35,14 +36,14 @@ public:
 	/// </summary>
 	/// <param name="data">Data to be appended</param>
 	/// <param name="size">Length of the data in bytes</param>
-	void Append(uint8_t* data, uint32_t length);
+	void Append(std::unique_ptr<uint8_t[]> data, uint32_t length);
 
 private:
 	uint32_t bytePosition  = 0;
 	uint8_t  bitPosition   = 0;
 	uint8_t  arrayPosition = 0;
 
-	std::vector<uint8_t*> data;
+	std::vector<std::unique_ptr<uint8_t[]>> data;
 	std::vector<uint32_t> lengths;
 };
 
