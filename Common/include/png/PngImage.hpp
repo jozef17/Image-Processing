@@ -38,6 +38,8 @@ private:
 
 	void ProcessData(BitStream& bitstream);
 
+	uint8_t colorType;
+
 };
 
 #endif /* PNG_IMAGE_HPP__ */
