@@ -12,7 +12,6 @@ Type01Decoder::Type01Decoder(BitStream& bitstream) : bitstream(bitstream)
 std::vector<uint8_t> Type01Decoder::Decode()
 {
 	std::vector<uint8_t> data;
-	// TODO verify order of bites!!!
 	std::cout << "Compressed with fixed codes" << std::endl;
 
 	while (true)
@@ -39,16 +38,16 @@ std::vector<uint8_t> Type01Decoder::Decode()
 
 		// Code is length
 
-		///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+		/*//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 		std::cout << "*****************************************************************************" << std::endl;/////////////////////////////		
 		//		std::cout << "decode distance from input stream move backwards distance bytes in the output"
 		//		<< " stream, and copy length bytes from this position to the output stream." << std::endl;
-		///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+		//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////*/
 
 		auto length = GetLength(literalLengthCode);
 		auto distance = GetDistance();
 		///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-		std::cout << "length: " << std::setw(3) << std::setfill('0') << std::dec << length << ", distance: " << (int)distance << std::endl;/////////
+		std::cout << "  length: " << std::setw(3) << std::setfill('0') << std::dec << length << ", distance: " << (int)distance << std::endl;/////////
 		///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 		auto start = (int)data.size() - (int)distance;
@@ -66,48 +65,9 @@ std::vector<uint8_t> Type01Decoder::Decode()
 				data.push_back(value);
 			}
 		}
-		///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+		/*//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 		std::cout << "*****************************************************************************" << std::endl;/////////////////////////////
-		///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-		/*
-		auto distBit4 = bitstream.GetNext();
-		auto distBit3 = bitstream.GetNext();
-		auto distBit2 = bitstream.GetNext();
-		auto distBit1 = bitstream.GetNext();
-		auto distBit0 = bitstream.GetNext();
-
-		uint32_t distCode = (int)distBit0 | ((int)distBit1 << 1) | ((int)distBit2 << 2) | ((int)distBit3 << 3) | ((int)distBit4 << 4);
-
-		if ((distCode == 30) || (distCode == 31))
-		{
-			throw RuntimeException("Invalid distance code " + std::to_string(distCode));
-		}
-
-		auto distance = distCode;
-		if (distCode > 3)
-		{
-			auto c = (distCode - 2) / 2;
-
-			int extra = 0;
-			for (auto k = 0; k < c; k++)
-			{
-				int a = bitstream.GetNext();
-				extra = extra | (a << k);
-			}
-			std::cout << "Distance code " << distCode << ", extra: " << c << ", extra value: " << extra << std::endl;
-			distance += extra;
-		}
-		std::cout << "Distance: " << distance << std::endl;
-
-		std::cout << "---------------------------------------------------------------------------" << std::endl;
-		for (auto a : data)
-		{
-			std::cout << (int)a << " ";
-		}
-		std::cout << std::endl;
-		std::cout << "---------------------------------------------------------------------------" << std::endl;
-		*/
+		//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////*/
 	}
 	return data;
 }
@@ -124,7 +84,7 @@ uint16_t Type01Decoder::GetLiteralLengthCode()
 	auto bit0 = bitstream.GetNext();
 
 	uint16_t code = (int)bit0 | ((int)bit1 << 1) | ((int)bit2 << 2) | ((int)bit3 << 3) | ((int)bit4 << 4) | ((int)bit5 << 5) | ((int)bit6 << 6);
-	if ((code <= 23)) // 7bit codes: 256 - 279 !bit6 && !bit5 &&
+	if ((code <= 23)) // 7bit codes: 256 - 279 
 	{
 		code += 256;
 		////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -156,7 +116,12 @@ uint16_t Type01Decoder::GetLiteralLengthCode()
 	// 9bit 144 - 255
 	auto bit8 = bitstream.GetNext();
 	code = (code << 1)| ((int)bit8);
+	if (code < 400)
+	{
+		throw RuntimeException("Invalid literal/length code "+ std::to_string(code));
+	}
 	code -= 256;
+
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	std::cout << std::setw(3) << std::setfill('0') << std::dec << (int)code << "   "  << bit6 << bit5 << bit4 << bit3 << bit2 << bit1 << bit0 << bit7 << bit8 <<  std::endl;///
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -175,7 +140,7 @@ uint8_t Type01Decoder::GetDistanceCode()
 	int distCode = (int)distBit0 | ((int)distBit1 << 1) | ((int)distBit2 << 2) | ((int)distBit3 << 3) | ((int)distBit4 << 4);
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	std::cout << "distCode: " << std::setw(3) << std::setfill('0') << std::dec << (int)distCode << " " << distBit4 << distBit3 << distBit2 << distBit1 << distBit0 << std::endl;/////////
-	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////*/
 
 	// Invalid distance code check
 	if ((distCode == 30) || (distCode == 31))
@@ -188,7 +153,7 @@ uint8_t Type01Decoder::GetDistanceCode()
 uint16_t Type01Decoder::GetLength(uint16_t code)
 {
 	// Get number of extra bits
-	uint8_t extraLookup[6] = { (uint8_t)264, (uint8_t)268, (uint8_t)272, (uint8_t)276, (uint8_t)280, (uint8_t)284};
+	uint16_t extraLookup[6] = { (uint16_t)264, (uint16_t)268, (uint16_t)272, (uint16_t)276, (uint16_t)280, (uint16_t)284};
 	uint8_t numberOfExtraBits = 0;
 	for (uint8_t i = 0; i < 6; i++)
 	{
@@ -199,29 +164,29 @@ uint16_t Type01Decoder::GetLength(uint16_t code)
 		}
 	}
 	///////////////////////////////////////////////////////////////////////////////////////////////////
-	std::cout << "code: " << (int)code << ", extra: " << (int)numberOfExtraBits << "   ";//////////////
-	///////////////////////////////////////////////////////////////////////////////////////////////////
+	std::cout << "code: " << (int)code << ", extra " << (int)numberOfExtraBits << "bits   ";//////////////
+	//////////////////////////////////////////////////////////////////////////////////////////////////*/
 
 	// Get Extra value
 	uint8_t extraValue = 0;
-	for (int8_t i = numberOfExtraBits - 1 ; i >= 0 ; i--)
+	for (int8_t i = 0; i < numberOfExtraBits; i++)
 	{
 		uint8_t extraBit = bitstream.GetNext();
-		extraValue = extraValue | (extraBit << i);
-		///////////////////////////////////////////////////////////////////////////////////////////////////
+		extraValue = (extraValue << 1) | extraBit;
+		/*//////////////////////////////////////////////////////////////////////////////////////////////////
 		std::cout << extraBit;/////////////////////////////////////////////////////////////////////////////
-		///////////////////////////////////////////////////////////////////////////////////////////////////
+		//////////////////////////////////////////////////////////////////////////////////////////////////*/
 
 	}
 	///////////////////////////////////////////////////////////////////////////////////////////////////////
 	std::cout << std::endl << "extra value: " << (int)extraValue << std::endl;/////////////////////////////
-	///////////////////////////////////////////////////////////////////////////////////////////////////////
+	//////////////////////////////////////////////////////////////////////////////////////////////////////*/
 
 	// Get Length
 	// Codes 257 - 264 --> lengths 3 - 10
 	if (code >= 257 && code <= 264) 
 	{
-		return code - 257 + 3;
+		return (code - 257) + 3;
 	}
 
 	// TODO refactor
@@ -291,8 +256,7 @@ uint16_t Type01Decoder::GetLength(uint16_t code)
 		startValue = 227;
 		break;
 	case 285:
-		startValue = 258;
-		break;
+		return 258;
 	default:
 		throw RuntimeException("Invalid Length Code " + std::to_string(code));
 	}
@@ -313,8 +277,8 @@ uint16_t Type01Decoder::GetDistance()
 		auto c = (distanceCode - 2) / 2;
 		for (auto k = 0; k < c; k++)
 		{
-			int a = bitstream.GetNext();
-			extra = extra | (a << k);
+			int bit = bitstream.GetNext();
+			extra = (extra << 1) | bit;
 		}
 		std::cout << "Distance code " << (int) distanceCode << ", extra: " << (int) c << ", extra value: " << extra << std::endl;
 	}
@@ -407,19 +371,3 @@ uint16_t Type01Decoder::GetDistance()
 
 	return startValue += extra;
 }
-
-
-/*
-00011000 11101010
-1 10 
-
-00110001
-
-10101111
-10101111
-10101111
-111111111
-00110000
-00000100000011110110101001100010101001111111110110111101111000111001100111111111001100000101001011011000101111100111111111111111111111110010001100001111111110011001011001011011100000000110100001100001101101101111101000100110100110000001100000000010010000110000010010001000011000011011100010100001100000001111111111101101011111001100100110111111111100110000000001000111101111111111111111111111111111111111110000000000000000011110001111010000010001010001
-
-*/

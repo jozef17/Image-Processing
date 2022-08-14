@@ -10,7 +10,7 @@ TEST(PixelTest, RGB2RGBA)
 	EXPECT_EQ(1, rgba.red);
 	EXPECT_EQ(128, rgba.green);
 	EXPECT_EQ(255, rgba.blue);
-	EXPECT_EQ(0, rgba.alpha);
+	EXPECT_EQ(255, rgba.alpha);
 }
 
 TEST(PixelTest, RGB2YCbCr)
