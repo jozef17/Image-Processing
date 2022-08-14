@@ -4,6 +4,7 @@ set(SOURCES
 	CommandLineParserTest.cpp
 	ImageTest.cpp
 	PixelTest.cpp
+	Type01DecoderTest.cpp
 )
 
 add_executable(CommonTests ${SOURCES})
