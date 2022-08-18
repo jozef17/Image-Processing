@@ -8,6 +8,7 @@
     - Portable Network Graphics (.png)
         - RGB and RGBA only
         - [DAM7](https://en.wikipedia.org/wiki/Adam7_algorithm) is not supported
+        - Only 8 bit channels are supported
 
 ## Common
 Static library containing shared functionality
@@ -51,6 +52,7 @@ Static library containing shared functionality
 - Unsupported features:
     - Only RGB and RGBA pixel formats are supported
     - Interface method [DAM7](https://en.wikipedia.org/wiki/Adam7_algorithm) is not supported
+    - Only 8 bit channels are supported
 - TBD Class diagram ?
 - TBD Sequence diagram ?
 - TBD Other UML Ddiagrams ?
