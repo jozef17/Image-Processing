@@ -1,6 +1,6 @@
 # Image Processing
 - CMake based projects related to Image Processing
-- C++14
+- C++
 - Unit tests written for Google Test framework
 - All project support following image formats:
     - RAW
