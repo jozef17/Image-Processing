@@ -20,22 +20,14 @@ private:
 	// reads numOfBits and returns nuber
 	uint16_t Get(uint8_t numOfBits);
 
+	// Decodes bits and returns code based on alphabet
 	uint16_t Get(const std::vector<Code>& codes);
 
 	// decodes code lengths
-	std::vector<Code> GetCodeLength(uint8_t hclen);
+	std::vector<Code> GetCodeLengths(uint8_t hclen);
 
-	// decodes literal length codes
-	std::vector<Code> GetLiteralLengthCodes(uint8_t hlit, const std::vector<Code> &distCodes);
-
-	// decodes distance codes
-	std::vector<Code> GetDistanceCodes(uint8_t hdist, const std::vector<Code> &distCodes);
-
-	/*uint16_t GetLiteralLengthCode();
-	uint8_t GetDistanceCode();
-
-	uint16_t GetLength(uint16_t code);
-	uint16_t GetDistance();*/
+	// decodes alphabet
+	std::vector<Code> GetAlphabet(uint16_t numElements, const std::vector<Code> &distCodes);
 
 	BitStream& bitstream;
 };

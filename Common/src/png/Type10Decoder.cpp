@@ -94,51 +94,113 @@ std::vector<uint8_t> Type10Decoder::Decode()
 	// 5 Bits: HLIT, # of Literal / Length codes - 257 (257 - 286)
 	// 5 Bits: HDIST, # of Distance codes - 1        (1 - 32)
 	// 4 Bits: HCLEN, # of Code Length codes - 4     (4 - 19)
-	/////////////////////////////////////////////////////////////////////////////
-	std::cout << std::dec << "HLIT : ";//////////////////////////////////////////////////////
-	/////////////////////////////////////////////////////////////////////////////
+	/*////////////////////////////////////////////////////////////////////////////
+	std::cout << std::dec << "HLIT : ";//////////////////////////////////////////
+	////////////////////////////////////////////////////////////////////////////*/
 	uint8_t hlit = Get(5);
-	/////////////////////////////////////////////////////////////////////////////
-	std::cout << " " << std::dec << (int)hlit << std::endl;////////////////////////////////////
-	std::cout << std::dec << "HDIST: ";//////////////////////////////////////////////////////
-	/////////////////////////////////////////////////////////////////////////////
+	/*////////////////////////////////////////////////////////////////////////////
+	std::cout << " " << std::dec << (int)hlit << std::endl;//////////////////////
+	std::cout << std::dec << "HDIST: ";//////////////////////////////////////////
+	////////////////////////////////////////////////////////////////////////////*/
 	uint8_t hdist = Get(5);
-	/////////////////////////////////////////////////////////////////////////////
-	std::cout << " " << std::dec << (int)hdist << std::endl;////////////////////////////////////
-	std::cout << std::dec << "HCLEN: ";//////////////////////////////////////////////////////
-	/////////////////////////////////////////////////////////////////////////////
+	/*////////////////////////////////////////////////////////////////////////////
+	std::cout << " " << std::dec << (int)hdist << std::endl;/////////////////////
+	std::cout << std::dec << "HCLEN: ";//////////////////////////////////////////
+	////////////////////////////////////////////////////////////////////////////*/
 	uint8_t hclen = Get(4);
-	/////////////////////////////////////////////////////////////////////////////
-	std::cout << " " << std::dec << (int)hclen << std::endl;////////////////////////////////////
-	/////////////////////////////////////////////////////////////////////////////
+	/*////////////////////////////////////////////////////////////////////////////
+	std::cout << " " << std::dec << (int)hclen << std::endl;/////////////////////
+	////////////////////////////////////////////////////////////////////////////*/
 
 	// Get alphabets
 	// Read and process code lengths
-	auto codeLengths = GetCodeLength(hclen);
+	auto codeLengths = GetCodeLengths(hclen);
 
 	// Decode literal length alphabet
-	auto llCodes = GetLiteralLengthCodes(hlit, codeLengths);
+	// HLIT + 257 code lengths for the literal / length alphabet,
+	//	encoded using the code length Huffman code
+	auto llCodes = GetAlphabet(hlit + 257, codeLengths);
+	////////////////////////////////////////////////////////////////////////////////////////////
+	std::cout << "------------------------------------------------------------" << std::endl;///
+	std::cout << "Literal/Length codes: " << std::endl;/////////////////////////////////////////
+	for (auto& code : llCodes)	////////////////////////////////////////////////////////////////
+	{	////////////////////////////////////////////////////////////////////////////////////////
+		std::cout << " " << (int)code.value << " (" << (int)code.length << "):   ";/////////////
+		for (int i = 0; i < code.length;i++)////////////////////////////////////////////////////
+		{///////////////////////////////////////////////////////////////////////////////////////
+			std::cout << (int)((code.code & 1 << i) >> i);//////////////////////////////////////
+		}///////////////////////////////////////////////////////////////////////////////////////
+		std::cout << std::endl;/////////////////////////////////////////////////////////////////
+	}	////////////////////////////////////////////////////////////////////////////////////////
+	std::cout << "------------------------------------------------------------" << std::endl;///
+	////////////////////////////////////////////////////////////////////////////////////////////
 
 	// Decode distance alphabet
-	auto distCodes = GetDistanceCodes(hdist, codeLengths);
+	// HDIST + 1 code lengths for the distance alphabet, encoded using the code length Huffman code
+	auto distCodes = GetAlphabet(hdist+1, codeLengths);
+	////////////////////////////////////////////////////////////////////////////////////////////
+	std::cout << "------------------------------------------------------------" << std::endl;///
+	std::cout << "Distance codes: " << std::endl;/////////////////////////////////////////
+	for (auto& code : distCodes)	////////////////////////////////////////////////////////////
+	{	////////////////////////////////////////////////////////////////////////////////////////
+		std::cout << " " << (int)code.value << " (" << (int)code.length << "):   ";/////////////
+		for (int i = 0; i < code.length; i++)///////////////////////////////////////////////////
+		{///////////////////////////////////////////////////////////////////////////////////////
+			std::cout << (int)((code.code & 1 << i) >> i);//////////////////////////////////////
+		}///////////////////////////////////////////////////////////////////////////////////////
+		std::cout << std::endl;/////////////////////////////////////////////////////////////////
+	}	////////////////////////////////////////////////////////////////////////////////////////
+	std::cout << "------------------------------------------------------------" << std::endl;///
+	////////////////////////////////////////////////////////////////////////////////////////////
 
 	while(true)
 	{
 		// The actual compressed data of the block, encoded using the 
 		// literal / length and distance Huffman codes
-		// TODO
+		auto code = Get(llCodes);
+		////////////////////////////////////////////////////////////////////////////////////////////
+		std::cout << " llCode: " << (int)code << std::endl;/////////////////////////////////////////
+		////////////////////////////////////////////////////////////////////////////////////////////
 
-		// The literal / length symbol 256 (end of data), encoded 
-		// using the literal / length Huffman code
-		// TODO
+		if (code < 256)
+		{
+			data.push_back(code);
+		}
+		else if (code == 256)
+		{
+			// The literal / length symbol 256 (end of data), encoded using the literal / length Huffman code
+			break;
+		}
+		else
+		{
+			auto distance = Get(distCodes);
+			auto length = code - 256;
+			///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+			std::cout << "  length: " << std::dec << length << ", distance: " << (int)distance << std::endl;//
+			///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+			auto start = (int)data.size() - (int)distance;
+			for (int i = 0; i < length; i++)
+			{
+				if ((start + i) < 0)
+				{
+					throw RuntimeException("Invalid distance! Start position: \'" + std::to_string(start + i) + "\' for distance: " + std::to_string((int)distance));
+				}
+				else
+				{
+					auto value = data.at(start + i);
+					std::cout << "   Adding:" << (int)value << std::endl;
+					data.push_back(value);
+				}
+			}
+		}
 
 		// ?????????????????????????????????????????????????????????????????
 		// The code length repeat codes can cross from HLIT + 257 to the
 		// HDIST + 1 code lengths.In other words, all code lengths form
 		// a single sequence of HLIT + HDIST + 258 values.
-		break;
+		// ?????????????????????????????????????????????????????????????????
 	}
-
 	return data;
 }
 
@@ -186,7 +248,7 @@ uint16_t Type10Decoder::Get(const std::vector<Code>& codes)
 	throw RuntimeException("Decoding Failed");
 }
 
-std::vector<Code> Type10Decoder::GetCodeLength(uint8_t hclen)
+std::vector<Code> Type10Decoder::GetCodeLengths(uint8_t hclen)
 {
 	// (HCLEN + 4) x 3 bits: code lengths for the code length alphabet given just
 	// above, in the order : 
@@ -232,28 +294,24 @@ std::vector<Code> Type10Decoder::GetCodeLength(uint8_t hclen)
 }
 
 // decodes literal length codes
-std::vector<Code> Type10Decoder::GetLiteralLengthCodes(uint8_t hlit, const std::vector<Code> &distCodes)
+// TODO change to Decode alphabet ???
+std::vector<Code> Type10Decoder::GetAlphabet(uint16_t numElements, const std::vector<Code>& distCodes)
 {
 	std::vector<Code> codes;
 
-	// HLIT + 257 code lengths for the literal / length alphabet,
-	//	encoded using the code length Huffman code
-
-	while (codes.size() < hlit + 257)
+	while (codes.size() < numElements )
 	{
 		auto val = Get(distCodes);
 		/////////////////////////////////////////////////////////////////////////////
-		std::cout << " " << std::dec << (int)val << std::endl;////////////////////////////////////
+		std::cout << "? " << std::dec << (int)val << std::endl;//////////////////////
 		/////////////////////////////////////////////////////////////////////////////
 
 		if (val < 16)
 		{
 			Code code = { 0 };
 			code.length = val;
-			code.code = codes.size() - 1;
+			code.value = codes.size();
 			codes.push_back(code);
-
-			continue;
 		}
 		if (val == 16)
 		{
@@ -262,32 +320,66 @@ std::vector<Code> Type10Decoder::GetLiteralLengthCodes(uint8_t hlit, const std::
 			// 	Example:  Codes 8, 16 (+2 bits 11),
 			// 	16 (+2 bits 10) will expand to
 			// 	12 code lengths of 8 (1 + 6 + 5)
-			
-			// TODO
+			auto repeatLength = Get(2);
+			/////////////////////////////////////////////////////////////////////////////////////
+			std::cout << std::endl;
+			std::cout << "(16) Adding " << std::dec << (int)(codes.at(codes.size() - 1).length) << " " << (repeatLength+3) << " times" << std::endl;
+			/////////////////////////////////////////////////////////////////////////////////////
+
+			for (uint16_t i = 0; i < repeatLength + 3; i++)
+			{
+				auto code = codes.at(codes.size() - 1);
+				code.value = codes.size();
+				codes.push_back(code);
+			}
 		}
 		else if (val == 17)
 		{
 			// 17: Repeat a code length of 0 for 3 - 10 times. (3 bits of length)
-			// TODO
+			auto repeatLength = Get(3);
+			/////////////////////////////////////////////////////////////////////////////////////
+			std::cout << std::endl;
+			std::cout << "(17) Adding " << std::dec << (int)(repeatLength+3) << "zeroes" << std::endl;
+			/////////////////////////////////////////////////////////////////////////////////////
+			for (uint16_t i = 0; i < repeatLength + 3; i++)
+			{
+				Code code = { 0 };
+				code.length = 0;
+				code.value = codes.size();
+				codes.push_back(code);
+			}
 		}
 		else if (val == 18)
 		{
+			auto repeatLength = Get(7);
+			/////////////////////////////////////////////////////////////////////////////////////
+			std::cout << std::endl;
+			std::cout << "(18) Adding " << std::dec << (int)(repeatLength + 11) << "zeroes" << std::endl;
+			/////////////////////////////////////////////////////////////////////////////////////
+
 			// 18: Repeat a code length of 0 for 11 - 138 times (7 bits of length)
-			// TODO
+ 			for (uint16_t i = 0; i < repeatLength + 11; i++)
+			{
+				Code code = { 0 };
+				code.length = 0;
+				code.value = codes.size();
+				codes.push_back(code);
+			}
 		}
-		break;
 	}
 
-	return codes;
-}
+	// Remove 0 lengths
+	codes.erase(
+		std::remove_if( 
+			codes.begin(), 
+			codes.end(), 
+			[](const Code& code){return code.length == 0;}
+		),
+		codes.end()
+	);
 
-// decodes distance codes
-std::vector<Code> Type10Decoder::GetDistanceCodes(uint8_t hdist, const std::vector<Code> &distCodes)
-{
-	std::vector<Code> codes;
-	// HDIST + 1 code lengths for the distance alphabet, encoded using the code length Huffman code
-
-	// TODO
+	std::sort(codes.begin(), codes.end());
+	Code::AsignCodes(codes);
 
 	return codes;
 }
