@@ -69,6 +69,9 @@ Window::~Window()
 void Window::SetImage(std::shared_ptr<Image> image)
 {
 	this->image = image;
+
+	this->width = std::min(this->image->GetWidth(), width);
+	this->height = std::min(this->image->GetHeight(), height);
 }
 
 void Window::SetTitle(std::string title)

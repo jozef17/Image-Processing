@@ -18,8 +18,8 @@
 // Info Header
 PACK(struct IHDR
 {
-	uint8_t width[4];				// image width (note: in little endian, invert byteorder for value)
-	uint8_t height[4];				// image height (note: in little endian, invert byteorder for value)
+	uint8_t width[4];				// image width
+	uint8_t height[4];				// image height
 	uint8_t chanellSize;			// number of bytes per chanel per pixel
 	uint8_t colorType;				// 2 = RGB/truecolor, TODO other vals
 	uint8_t compressionMethod;		// 0
@@ -191,6 +191,11 @@ void PngImage::ProcessHeader(std::unique_ptr<Chunk> &ihdrChunk)
 		throw RuntimeException("Unsupported filter method: \"" + std::to_string(ihdr.interfaceMethod) + "\"");
 	}
 
+	if (ihdr.chanellSize != 8)
+	{
+		throw RuntimeException("Unsupported chanell size: \"" + std::to_string(ihdr.chanellSize) + "\"");
+	}
+
 	// Allocate image data
 	this->width = (TO_INT(ihdr.width));
 	this->height = (TO_INT(ihdr.height));
@@ -215,8 +220,13 @@ void PngImage::ProcessData(BitStream& bitstream)
 	std::cout << std::endl;////////////////////////////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////////////////////////////////////////*/
 
+	/*
 	this->image = std::unique_ptr<std::unique_ptr<Pixel>[]>(new std::unique_ptr<Pixel>[this->width * this->height]);
 
+	while (decodedBytes.size() < this->width * this->height * 4 + this->height)
+	{
+		decodedBytes.push_back(0); // ?????????
+	}
 	//////////////////////////////////////////////////////////////////////////////////////////////////
 	std::cout << std::endl << "Pixels:" << std::endl;	//////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////////////////////////////////////////
@@ -225,8 +235,8 @@ void PngImage::ProcessData(BitStream& bitstream)
 	auto loc = 0;
 	for (uint32_t i = 0; i < this->height; i++) // y
 	{
-		auto filterType = decodedBytes.at(loc++); // x
-		for (uint32_t j = 0; j < this->width; j++)
+		auto filterType = decodedBytes.at(loc++); // get filter method for current row
+		for (uint32_t j = 0; j < this->width; j++) // x
 		{
 			auto red = decodedBytes.at(loc++);
 			auto green = decodedBytes.at(loc++);
@@ -279,6 +289,8 @@ void PngImage::ProcessData(BitStream& bitstream)
 			case 4:
 				// TODO peath
 				break;
+			default:
+				throw RuntimeException("Invalid filtering method: "+std::to_string(filterType));
 			}
 			//////////////////////////////////////////////////////////////////////////////////////////////////
 			std::cout << std::setw(3) << std::setfill('0') << std::dec << (int)red << " ";////////////////////
@@ -294,6 +306,5 @@ void PngImage::ProcessData(BitStream& bitstream)
 		//////////////////////////////////////////////////////////////////////////////////////////////////
 		std::cout << std::endl;	//////////////////////////////////////////////////////////////////////////
 		//////////////////////////////////////////////////////////////////////////////////////////////////
-
-	}
+	} //*/
 }

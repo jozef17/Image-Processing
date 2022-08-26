@@ -68,8 +68,5 @@ std::unique_ptr<BlockDecoder> Inflate::GetDecoder()
 	{
 		return std::unique_ptr<BlockDecoder>(new Type10Decoder(this->bitstream));
 	}
-	else if (!typeBit2 && typeBit1) // 11
-	{
-		throw RuntimeException("Invalid DEFLATE type specifier");
-	}
+	throw RuntimeException("Invalid DEFLATE type specifier");
 }

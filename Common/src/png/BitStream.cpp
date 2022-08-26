@@ -1,4 +1,5 @@
 #include "png/BitStream.hpp"
+#include "Exception.hpp"
 
 bool BitStream::GetNext() 
 { 
@@ -23,6 +24,11 @@ bool BitStream::GetNext()
 
 uint8_t BitStream::GetCurrentByte()
 {
+	if (this->arrayPosition >= this->data.size())
+	{
+		throw RuntimeException("Error: End of stream");
+	}
+
 	auto byte = this->data[this->arrayPosition][this->bytePosition++];
 
 	this->bitPosition = 0; // reset bit
@@ -50,7 +56,7 @@ uint8_t& BitStream::operator>>(uint8_t& b)
 void BitStream::Skip(uint32_t bitsToSkip)
 {
 	// TODO optimise
-	for (int i = 0; i < bitsToSkip; i++)
+	for (uint32_t i = 0; i < bitsToSkip; i++)
 	{
 		GetNext();
 	}
