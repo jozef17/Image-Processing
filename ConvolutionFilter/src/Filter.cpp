@@ -1,9 +1,12 @@
 #include "Filter.hpp"
 #include "Image.hpp"
 #include "Pixel.hpp"
-
+#ifdef USE_CUDA
+#include "Filter.cuh"
+#else
 #include <thread>
 #include <functional>
+#endif
 
 Filter::Filter(std::shared_ptr<Image> image, Kernel kernel) noexcept : image(image), kernel(kernel)
 {}
@@ -22,6 +25,7 @@ Filter& Filter::operator=(const class Filter& other)
 Filter::~Filter()
 {}
 
+#ifndef USE_CUDA
 std::shared_ptr<Image> Filter::ApplyFilter()
 {
 	std::shared_ptr<Image> result = std::shared_ptr<Image>(new Image(this->image->GetWidth(), this->image->GetHeight()));
@@ -51,24 +55,24 @@ std::shared_ptr<Image> Filter::ApplyFilter()
 						auto kernelVal = this->kernel.Get(d, c);
 						auto imageVal = this->image->GetPixel(x, y).ToRGB();
 
-						red += kernelVal * imageVal.red;
+						red   += kernelVal * imageVal.red;
 						green += kernelVal * imageVal.green;
-						blue += kernelVal * imageVal.blue;
+						blue  += kernelVal * imageVal.blue;
 					}
 				}
 
 				// Trim values to 0 - 255 range
-				red   = std::max(std::min(red, 255.f), 0.f);
+				red   = std::max(std::min(red,   255.f), 0.f);
 				green = std::max(std::min(green, 255.f), 0.f);
-				blue  = std::max(std::min(blue, 255.f), 0.f);
+				blue  = std::max(std::min(blue,  255.f), 0.f);
 
 				// Set Pixel
-				Pixel pixel = { RGBPixel{ (uint8_t)red, (uint8_t)green, (uint8_t)blue } };
+				Pixel pixel = { RGBPixel{ static_cast<uint8_t>(red), static_cast<uint8_t>(green), static_cast<uint8_t>(blue) } };
 				result->SetPixel(b, a, pixel);
 			}
 		}
 	};
-	
+
 	// Run filter in parallel
 	std::thread threads[threadCount - 1];
 	for (int i = 0; i < threadCount - 1; i++)
@@ -87,3 +91,4 @@ std::shared_ptr<Image> Filter::ApplyFilter()
 
 	return result;
 }
+#endif
