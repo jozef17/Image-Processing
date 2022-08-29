@@ -220,12 +220,14 @@ void PngImage::ProcessData(BitStream& bitstream)
 	std::cout << std::endl;////////////////////////////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////////////////////////////////////////*/
 
-	/*
 	this->image = std::unique_ptr<std::unique_ptr<Pixel>[]>(new std::unique_ptr<Pixel>[this->width * this->height]);
 
-	while (decodedBytes.size() < this->width * this->height * 4 + this->height)
+	auto start = 0;
+	auto bytesPerPixel = static_cast<ColorType>(this->colorType) == ColorType::TrueColor ? 3 : 4;
+	while (decodedBytes.size() < this->width * this->height * bytesPerPixel + this->height)
 	{
-		decodedBytes.push_back(0); // ?????????
+//		std::cout << "???? " << (int)decodedBytes.at(start) << std::endl;
+		decodedBytes.push_back(decodedBytes.at(start++));
 	}
 	//////////////////////////////////////////////////////////////////////////////////////////////////
 	std::cout << std::endl << "Pixels:" << std::endl;	//////////////////////////////////////////////
@@ -284,9 +286,11 @@ void PngImage::ProcessData(BitStream& bitstream)
 				break;
 			}
 			case 3:
+				std::cout << "average filter" << std::endl;
 				// TODO average
 				break;
 			case 4:
+				std::cout << "peath filter" << std::endl;
 				// TODO peath
 				break;
 			default:

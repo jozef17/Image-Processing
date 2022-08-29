@@ -29,6 +29,9 @@ private:
 	// decodes alphabet
 	std::vector<Code> GetAlphabet(uint16_t numElements, const std::vector<Code> &distCodes);
 
+	uint16_t GetDistance(uint32_t distanceCode);
+	uint16_t GetLength(uint16_t code);
+
 	BitStream& bitstream;
 };
 
