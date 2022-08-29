@@ -86,9 +86,8 @@ bool Code::operator<(const Code& other) const
 Type10Decoder::Type10Decoder(BitStream& bitstream) : bitstream(bitstream)
 {}
 
-std::vector<uint8_t> Type10Decoder::Decode()
+void Type10Decoder::Decode(std::vector<uint8_t>& data)
 {
-	std::vector<uint8_t> data;
 	std::cout << "compressed with dynamic Huffman codes" << std::endl;
 
 	// 5 Bits: HLIT, # of Literal / Length codes - 257 (257 - 286)
@@ -205,7 +204,6 @@ std::vector<uint8_t> Type10Decoder::Decode()
 		// a single sequence of HLIT + HDIST + 258 values.
 		// ?????????????????????????????????????????????????????????????????
 	}
-	return data;
 }
 
 uint16_t Type10Decoder::Get(uint8_t numOfBits)

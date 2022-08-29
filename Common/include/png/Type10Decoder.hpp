@@ -14,7 +14,7 @@ public:
 	Type10Decoder(BitStream& bitstream);
 	virtual ~Type10Decoder() = default;
 
-	virtual std::vector<uint8_t> Decode() override;
+	virtual void Decode(std::vector<uint8_t>& data) override;
 
 private:
 	// reads numOfBits and returns nuber

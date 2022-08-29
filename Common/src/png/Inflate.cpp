@@ -43,11 +43,10 @@ std::vector<uint8_t> Inflate::Decode()
 		isLast = bitstream.GetNext();
 		auto decoder = GetDecoder();
 		// Decode block
-		auto newData = decoder->Decode();
-		data.insert(data.end(), newData.begin(), newData.end());
+		decoder->Decode(data);
 	} while (!isLast);
 
-	return data;
+	return std::move(data);
 }
 
 std::unique_ptr<BlockDecoder> Inflate::GetDecoder()

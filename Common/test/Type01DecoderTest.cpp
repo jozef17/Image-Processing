@@ -25,8 +25,10 @@ TEST(Type01DecoderTest, Literals0to143)
 	// Decode
 	BitStream stream;
 	stream.Append(std::move(data), 145);
+
+	std::vector<uint8_t> result;
 	Type01Decoder decoder(stream);
-	auto result = decoder.Decode();
+	decoder.Decode(result);
 
 	// Check result
 	for (int i = 0; i < 144; i++)
@@ -62,8 +64,10 @@ TEST(Type01DecoderTest, Literals144to255)
 	// Decode
 	BitStream stream;
 	stream.Append(std::move(data), 127);
+
+	std::vector<uint8_t> result;
 	Type01Decoder decoder(stream);
-	auto result = decoder.Decode();
+	decoder.Decode(result);
 
 	// Check result
 	for (int i = 0; i < result.size(); i++)
@@ -136,8 +140,10 @@ TEST(Type01DecoderTest, Decode1)
 	// Decode
 	BitStream stream;
 	stream.Append(std::move(data), SIZE);
+
+	std::vector<uint8_t> result;
 	Type01Decoder decoder(stream);
-	auto result = decoder.Decode();
+	decoder.Decode(result);
 
 	// Check result
 	EXPECT_EQ(result.size(), 200);

@@ -10,9 +10,8 @@
 Type01Decoder::Type01Decoder(BitStream& bitstream) : bitstream(bitstream)
 {}
 
-std::vector<uint8_t> Type01Decoder::Decode()
+void Type01Decoder::Decode(std::vector<uint8_t> &data)
 {
-	std::vector<uint8_t> data;
 	std::cout << "Compressed with fixed codes" << std::endl;
 
 	while (true)
@@ -67,8 +66,6 @@ std::vector<uint8_t> Type01Decoder::Decode()
 	auto checksum = Adler32::Decode(data);
 	std::cout << std::endl;
 	std::cout << checksum << std::endl << std::endl;
-
-	return data;
 }
 
 uint16_t Type01Decoder::GetLiteralLengthCode()

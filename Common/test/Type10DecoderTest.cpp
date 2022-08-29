@@ -69,7 +69,8 @@ TEST(Type10DecoderTest, Decode1)
 	BitStream stream;
 	stream.Append(std::move(data), SIZE);
 	Type10Decoder decoder(stream);
-	auto result = decoder.Decode();
+	std::vector<uint8_t> result;
+	decoder.Decode(result);
 
 	// Check result
 	EXPECT_EQ(result.size(), 40100); // Size

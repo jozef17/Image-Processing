@@ -13,7 +13,7 @@ public:
 	Type01Decoder(BitStream& bitstream);
 	virtual ~Type01Decoder() = default;
 
-	virtual std::vector<uint8_t> Decode() override;
+	virtual void Decode(std::vector<uint8_t> &data) override;
 
 private:
 	uint16_t GetLiteralLengthCode();
