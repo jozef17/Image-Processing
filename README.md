@@ -54,7 +54,9 @@ Static library containing shared functionality
 
 ## [Convolution Filter](ConvolutionFilter)
 - Application for applying convolution filter on input image
-- Parallelised using std::thread
+- Parallelised using:
+    - [Nvidia CUDA](https://developer.nvidia.com/cuda-zone) (if supported) or
+    - C++'s [std::thread](https://en.cppreference.com/w/cpp/thread/thread)
 - Displays result in a winfow
 - Uses strategy pattern to handle commandline arguments:
     - `-h` or `--help`: displays help

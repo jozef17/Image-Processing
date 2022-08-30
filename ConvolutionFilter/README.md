@@ -1,6 +1,7 @@
 # Convolution Filter
 
-Application for applying convolution filter on input image
+- Application for applying convolution filter on input image
+- Uses [Nvidia CUDA](https://developer.nvidia.com/cuda-zone) if supported. Otherwise usees C++ [std::thread](https://en.cppreference.com/w/cpp/thread/thread)
 
 ### EdgeDetection
 ![Demo](media/EDGEDETECTIONH.png)
