@@ -3,18 +3,19 @@
 #ifndef TYPE_10_DECODER_HPP__
 #define TYPE_10_DECODER_HPP__
 
-#include "BlockDecoder.hpp"
+#include "HuffmanDecoder.hpp"
 
 struct Code;
-class BitStream;
 
-class Type10Decoder final : public BlockDecoder
+class Type10Decoder final : public HuffmanDecoder
 {
 public:
 	Type10Decoder(BitStream& bitstream);
-	virtual ~Type10Decoder() = default;
+	virtual ~Type10Decoder();
 
-	virtual void Decode(std::vector<uint8_t>& data) override;
+protected:
+	virtual uint16_t GetLLCode() override;
+	virtual uint16_t GetDistanceCode() override;
 
 private:
 	// reads numOfBits and returns nuber
@@ -29,10 +30,8 @@ private:
 	// decodes alphabet
 	std::vector<Code> GetAlphabet(uint16_t numElements, const std::vector<Code> &distCodes);
 
-	uint16_t GetDistance(uint32_t distanceCode);
-	uint16_t GetLength(uint16_t code);
-
-	BitStream& bitstream;
+	std::vector<Code> llAphabet;
+	std::vector<Code> distanceAlphabet;
 };
 
 #endif /* TYPE_10_DECODER_HPP__ */

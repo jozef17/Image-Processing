@@ -11,6 +11,7 @@ set(SOURCES
    src/Window.cpp
    src/png/Adler32.cpp
    src/png/BitStream.cpp
+   src/png/HuffmanDecoder.cpp
    src/png/Inflate.cpp 
    src/png/PngImage.cpp
 #   src/png/Type00Decoder.cpp
@@ -32,6 +33,7 @@ set(INCLUDES
    include/png/Adler32.hpp
    include/png/BitStream.hpp
    include/png/BlockDecoder.hpp
+   include/png/HuffmanDecoder.hpp
    include/png/Inflate.hpp 
    include/png/PngImage.hpp
 #   include/png/Type00Decoder.hpp
