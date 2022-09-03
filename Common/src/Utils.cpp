@@ -1,5 +1,7 @@
 #include "Utils.hpp"
 
+#include<algorithm>
+
 bool Utils::EndsWith(const std::string& str, const std::string& ending) noexcept
 {
 	auto strLen    = str.length();
@@ -18,4 +20,16 @@ bool Utils::EndsWith(const std::string& str, const std::string& ending) noexcept
 	}
 
 	return true;
+}
+
+std::string Utils::ToLowercase(std::string str) noexcept
+{
+	std::transform(str.begin(), str.end(), str.begin(), ::tolower);
+	return str;
+}
+
+std::string Utils::ToUppercase(std::string str) noexcept
+{
+	std::transform(str.begin(), str.end(), str.begin(), ::toupper);
+	return str;
 }

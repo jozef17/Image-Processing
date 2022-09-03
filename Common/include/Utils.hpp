@@ -12,6 +12,9 @@ public:
 
 	static bool EndsWith(const std::string& str, const std::string& ending) noexcept;
 
+	static std::string ToLowercase(std::string str) noexcept;
+	static std::string ToUppercase(std::string str) noexcept;
+
 };
 
 #endif /* UTILS_HPP__ */
