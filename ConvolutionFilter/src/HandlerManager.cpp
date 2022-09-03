@@ -5,6 +5,9 @@
 #include "Kernel.hpp"
 #include "BitmapImage.hpp"
 #include "RAWImage.hpp"
+#include "Utils.hpp"
+#include "Exception.hpp"
+#include "png/PngImage.hpp"
 
 std::unique_ptr<ArgumentHandler> HandlerManager::GetHandler(const std::map<std::string, std::vector<std::string>>& options)
 {
@@ -53,7 +56,19 @@ std::unique_ptr<ArgumentHandler> HandlerManager::GetHandler(const std::map<std::
 		std::shared_ptr<Image> image;
 		if (parameters.size() == 1)
 		{
-			image = std::shared_ptr<Image>(new BitmapImage(parameters.at(0)));
+			auto lowercaseFile = Utils::ToLowercase(parameters.at(0));
+			if (Utils::EndsWith(lowercaseFile, ".png"))
+			{
+				image = std::shared_ptr<Image>(new PngImage(parameters.at(0)));
+			}
+			else if (Utils::EndsWith(lowercaseFile, ".bmp"))
+			{
+				image = std::shared_ptr<Image>(new BitmapImage(parameters.at(0)));
+			}
+			else
+			{
+				throw RuntimeException("Unsupported Image format file: \"" + parameters.at(0) + "\"! Only png, bmp and raw images are supported!");
+			}
 		}
 		else if (parameters.size() == 3)
 		{
