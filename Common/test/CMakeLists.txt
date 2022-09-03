@@ -6,6 +6,7 @@ set(SOURCES
 	PixelTest.cpp
 	Type01DecoderTest.cpp
 	Type10DecoderTest.cpp
+	UtilsTest.cpp
 )
 
 add_executable(CommonTests ${SOURCES})
