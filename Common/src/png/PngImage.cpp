@@ -119,7 +119,7 @@ std::unique_ptr<Chunk> PngImage::LoadChnuk(std::ifstream& file)
 	{
 		std::cout << "...";
 	}
-	std::cout << std::endl;	
+	std::cout << std::endl;
 #endif
 
 	// Read crc
@@ -159,11 +159,11 @@ void PngImage::ProcessHeader(std::unique_ptr<Chunk> &ihdrChunk)
 	std::cout << " (" << std::dec << (int)(TO_INT(ihdr.height)) << ") ";
 	std::cout << " [" << std::dec << (int)(this->height) << "]" << std::endl;
 
-	std::cout << "                          - chanellSize:       " 
+	std::cout << "                          - chanellSize:       "
 		<< std::setw(2) << std::setfill('0') << std::hex << (int)ihdr.chanellSize << std::endl;
-	std::cout << "                          - colorType:         " 
+	std::cout << "                          - colorType:         "
 		<< std::setw(2) << std::setfill('0') << std::hex << (int)ihdr.colorType << std::endl;
-	std::cout << "                          - compressionMethod: " 
+	std::cout << "                          - compressionMethod: "
 		<< std::setw(2) << std::setfill('0') << std::hex << (int)ihdr.compressionMethod << std::endl;
 #endif
 
@@ -208,7 +208,7 @@ void PngImage::ProcessHeader(std::unique_ptr<Chunk> &ihdrChunk)
 void PngImage::ProcessData(BitStream& bitstream)
 {
 	Inflate decoder(bitstream);
-	auto decodedBytes = decoder.Decode();
+	auto decodedBytes  = decoder.Decode();
 	auto bytesPerPixel = static_cast<ColorType>(this->colorType) == ColorType::TrueColor ? 3 : 4;
 
 #ifdef ENABLE_LOGS
@@ -242,9 +242,9 @@ void PngImage::ProcessData(BitStream& bitstream)
 		auto filterType = decodedBytes.at(loc++); // get filter method for current row
 		for (uint32_t j = 0; j < this->width; j++) // x
 		{
-			auto red = decodedBytes.at(loc++);
+			auto red   = decodedBytes.at(loc++);
 			auto green = decodedBytes.at(loc++);
-			auto blue = decodedBytes.at(loc++);
+			auto blue  = decodedBytes.at(loc++);
 			uint8_t alpha = 255;
 			if (this->colorType == (uint8_t)ColorType::TrueColorAlpha)
 			{
@@ -263,63 +263,89 @@ void PngImage::ProcessData(BitStream& bitstream)
 				RGBAPixel leftPixel = { 0,0,0,0 };
 				if (j > 0)
 				{
-					leftPixel  = this->image[i * this->width + j - 1].get()->ToRGBA();
+					leftPixel = GetPixel(j - 1, i).ToRGBA();
 				}
 
-				red = red + leftPixel.red;
-				green = green + leftPixel.green;
-				blue = blue + leftPixel.blue;
-				alpha = alpha + leftPixel.alpha;
+				red   += leftPixel.red;
+				green += leftPixel.green;
+				blue  += leftPixel.blue;
+				alpha += leftPixel.alpha;
 
 				break;
 			}
 			case 2:
 			{
 				// Up
-				auto above = (i - 1) * this->width + j;
-				auto abovePixel = this->image[above].get()->ToRGBA();
+				RGBAPixel abovePixel = { 0,0,0,0 }; // b
+				if (i > 0)
+				{
+					abovePixel = GetPixel(j, i - 1).ToRGBA();
+				}
 
-				red = red + abovePixel.red;
-				green = green + abovePixel.green;
-				blue = blue + abovePixel.blue;
-				alpha = alpha + abovePixel.alpha;
+				red   += abovePixel.red;
+				green += abovePixel.green;
+				blue  += abovePixel.blue;
+				alpha += abovePixel.alpha;
 
 				break;
 			}
 			case 3:
 			{
 				// Average
-				RGBAPixel leftPixel = { 0,0,0,0 }; // a
+				RGBAPixel leftPixel  = { 0,0,0,0 }; // a
+				RGBAPixel abovePixel = { 0,0,0,0 }; // b
 				if (j > 0)
 				{
-					auto left = i * this->width + j - 1;
-					leftPixel = this->image[left].get()->ToRGBA();
+					leftPixel = GetPixel(j - 1, i).ToRGBA();
 				}
 
-				auto above = (i - 1) * this->width + j; // b
-				auto abovePixel = this->image[above].get()->ToRGBA();
+				if (i > 0)
+				{
+					abovePixel = GetPixel(j, i - 1).ToRGBA();
+				}
 
-
-				red   = static_cast<uint8_t>(red   + std::floor(abovePixel.red   + leftPixel.red)   / 2);
-				green = static_cast<uint8_t>(green + std::floor(abovePixel.green + leftPixel.green) / 2);
-				blue  = static_cast<uint8_t>(blue  + std::floor(abovePixel.blue  + leftPixel.blue)  / 2);
-				alpha = static_cast<uint8_t>(alpha + std::floor(abovePixel.alpha + leftPixel.alpha) / 2);
+				red   += static_cast<uint8_t>(std::floor((abovePixel.red   + leftPixel.red)   / 2));
+				green += static_cast<uint8_t>(std::floor((abovePixel.green + leftPixel.green) / 2));
+				blue  += static_cast<uint8_t>(std::floor((abovePixel.blue  + leftPixel.blue)  / 2));
+				alpha += static_cast<uint8_t>(std::floor((abovePixel.alpha + leftPixel.alpha) / 2));
 
 				break;
 			}
-
 			case 4:
-				throw RuntimeException("peath filter not Implemented!!!!");
+			{
+				// Peath
+				RGBAPixel leftPixel      = { 0,0,0,0 }; // a
+				RGBAPixel abovePixel     = { 0,0,0,0 }; // b
+				RGBAPixel aboveLeftPixel = { 0,0,0,0 }; // c
+				if (j > 0)
+				{
+					leftPixel = GetPixel(j - 1, i).ToRGBA();
+					if (i > 0)
+					{
+						aboveLeftPixel = GetPixel(j - 1, i - 1).ToRGBA();
+					}
+				}
+				if (i > 0)
+				{
+					abovePixel = GetPixel(j, i - 1).ToRGBA();
+				}
+				
+				red   += Paeth(leftPixel.alpha, abovePixel.red, aboveLeftPixel.alpha);
+				green += Paeth(red, abovePixel.green, abovePixel.red);
+				blue  += Paeth(green, abovePixel.blue, abovePixel.red);
+				alpha += Paeth(blue, abovePixel.alpha, abovePixel.blue);
+
 				break;
+			}
 			default:
-				throw RuntimeException("Invalid filtering method: "+std::to_string(filterType));
+				throw RuntimeException("Invalid filtering method: " + std::to_string(filterType));
 			}
 #ifdef ENABLE_LOGS
-			std::cout << std::setw(3) << std::setfill('0') << std::dec << (int)red << " ";
-			std::cout << std::setw(3) << std::setfill('0') << std::dec << (int)green << " ";
-			std::cout << std::setw(3) << std::setfill('0') << std::dec << (int)blue << " ";
-			std::cout << std::setw(3) << std::setfill('0') << std::dec << (int)alpha << " ";
-			std::cout << ", ";
+			std::cout << std::setw(3) << std::setfill('0') << std::dec << (int)red << " "
+				<< std::setw(3) << std::setfill('0') << std::dec << (int)green << " "
+				<< std::setw(3) << std::setfill('0') << std::dec << (int)blue << " "
+				<< std::setw(3) << std::setfill('0') << std::dec << (int)alpha << " "
+				<< ", ";
 #endif
 			RGBAPixel rgba{ red, green, blue, alpha };
 			this->image[i * this->width + j] = std::unique_ptr<Pixel>(new Pixel(rgba));
@@ -328,4 +354,15 @@ void PngImage::ProcessData(BitStream& bitstream)
 		std::cout << std::endl;
 #endif
 	}
+}
+
+uint8_t PngImage::Paeth(uint8_t a, uint8_t b, uint8_t c)
+{
+	auto p  = a + b - c;
+	auto pa = std::abs(p - a);
+	auto pb = std::abs(p - b);
+	auto pc = std::abs(p - c);
+	if(pa <= pb && pa <= pc) return a;
+	else if(pb <= pc) return b;
+	else return c;
 }

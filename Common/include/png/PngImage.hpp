@@ -38,6 +38,8 @@ private:
 
 	void ProcessData(BitStream& bitstream);
 
+	uint8_t Paeth(uint8_t a, uint8_t b, uint8_t c);
+
 	uint8_t colorType;
 
 };
