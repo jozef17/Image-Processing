@@ -237,10 +237,10 @@ void PngImage::ProcessData(BitStream& bitstream)
 
 	// "Defilter" data
 	auto loc = 0;
-	for (uint32_t i = 0; i < this->height; i++) // y
+	for (uint32_t y = 0; y < this->height; y++) // y
 	{
 		auto filterType = decodedBytes.at(loc++); // get filter method for current row
-		for (uint32_t j = 0; j < this->width; j++) // x
+		for (uint32_t x = 0; x < this->width; x++) // x
 		{
 			auto red   = decodedBytes.at(loc++);
 			auto green = decodedBytes.at(loc++);
@@ -261,9 +261,9 @@ void PngImage::ProcessData(BitStream& bitstream)
 			case 1:
 			{
 				RGBAPixel leftPixel = { 0,0,0,0 };
-				if (j > 0)
+				if (x > 0)
 				{
-					leftPixel = GetPixel(j - 1, i).ToRGBA();
+					leftPixel = GetPixel(x - 1, y).ToRGBA();
 				}
 
 				red   += leftPixel.red;
@@ -277,9 +277,9 @@ void PngImage::ProcessData(BitStream& bitstream)
 			{
 				// Up
 				RGBAPixel abovePixel = { 0,0,0,0 }; // b
-				if (i > 0)
+				if (y > 0)
 				{
-					abovePixel = GetPixel(j, i - 1).ToRGBA();
+					abovePixel = GetPixel(x, y - 1).ToRGBA();
 				}
 
 				red   += abovePixel.red;
@@ -294,14 +294,14 @@ void PngImage::ProcessData(BitStream& bitstream)
 				// Average
 				RGBAPixel leftPixel  = { 0,0,0,0 }; // a
 				RGBAPixel abovePixel = { 0,0,0,0 }; // b
-				if (j > 0)
+				if (x > 0)
 				{
-					leftPixel = GetPixel(j - 1, i).ToRGBA();
+					leftPixel = GetPixel(x - 1, y).ToRGBA();
 				}
 
-				if (i > 0)
+				if (y > 0)
 				{
-					abovePixel = GetPixel(j, i - 1).ToRGBA();
+					abovePixel = GetPixel(x, y - 1).ToRGBA();
 				}
 
 				red   += static_cast<uint8_t>(std::floor((abovePixel.red   + leftPixel.red)   / 2));
@@ -314,26 +314,26 @@ void PngImage::ProcessData(BitStream& bitstream)
 			case 4:
 			{
 				// Peath
-				RGBAPixel leftPixel      = { 0,0,0,0 }; // a
-				RGBAPixel abovePixel     = { 0,0,0,0 }; // b
-				RGBAPixel aboveLeftPixel = { 0,0,0,0 }; // c
-				if (j > 0)
+				RGBAPixel leftPixel     = { 0,0,0,0 }; // a
+				RGBAPixel abovePixel    = { 0,0,0,0 }; // b
+				RGBAPixel diagonalPixel = { 0,0,0,0 }; // c
+				if (x > 0)
 				{
-					leftPixel = GetPixel(j - 1, i).ToRGBA();
-					if (i > 0)
+					leftPixel = GetPixel(x - 1, y).ToRGBA();
+					if (y > 0)
 					{
-						aboveLeftPixel = GetPixel(j - 1, i - 1).ToRGBA();
+						diagonalPixel = GetPixel(x - 1, y - 1).ToRGBA();
 					}
 				}
-				if (i > 0)
+				if (y > 0)
 				{
-					abovePixel = GetPixel(j, i - 1).ToRGBA();
+					abovePixel = GetPixel(x, y - 1).ToRGBA();
 				}
 				
-				red   += Paeth(leftPixel.alpha, abovePixel.red, aboveLeftPixel.alpha);
-				green += Paeth(red, abovePixel.green, abovePixel.red);
-				blue  += Paeth(green, abovePixel.blue, abovePixel.red);
-				alpha += Paeth(blue, abovePixel.alpha, abovePixel.blue);
+				red += Paeth(leftPixel.red, abovePixel.red, diagonalPixel.red);
+				green += Paeth(leftPixel.green, abovePixel.green, diagonalPixel.green);
+				blue += Paeth(leftPixel.blue, abovePixel.blue, diagonalPixel.blue);
+				alpha += Paeth(leftPixel.alpha, abovePixel.alpha, diagonalPixel.alpha);
 
 				break;
 			}
@@ -348,7 +348,7 @@ void PngImage::ProcessData(BitStream& bitstream)
 				<< ", ";
 #endif
 			RGBAPixel rgba{ red, green, blue, alpha };
-			this->image[i * this->width + j] = std::unique_ptr<Pixel>(new Pixel(rgba));
+			SetPixel(x, y, Pixel(rgba));
 		}
 #ifdef ENABLE_LOGS
 		std::cout << std::endl;
@@ -356,13 +356,20 @@ void PngImage::ProcessData(BitStream& bitstream)
 	}
 }
 
-uint8_t PngImage::Paeth(uint8_t a, uint8_t b, uint8_t c)
+uint8_t PngImage::Paeth(uint8_t a, uint8_t b, uint8_t c) const noexcept
 {
 	auto p  = a + b - c;
 	auto pa = std::abs(p - a);
 	auto pb = std::abs(p - b);
 	auto pc = std::abs(p - c);
-	if(pa <= pb && pa <= pc) return a;
-	else if(pb <= pc) return b;
-	else return c;
+	
+	if (pa <= pb && pa <= pc)
+	{
+		return a;
+	}
+	else if (pb <= pc)
+	{
+		return b;
+	}
+	return c;
 }
