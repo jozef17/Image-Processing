@@ -1,13 +1,14 @@
 #include "png/Inflate.hpp"
 #include "png/BitStream.hpp"
-//#include "png/Type00Decoder.hpp"
 #include "png/Type01Decoder.hpp"
 #include "png/Type10Decoder.hpp"
 #include "Exception.hpp"
 
+#ifdef ENABLE_LOGS
 #include <iostream>
 #include <iomanip>
 #include <bitset>
+#endif
 
 Inflate::Inflate(BitStream& bitstream) noexcept : bitstream(bitstream)
 {}
@@ -26,15 +27,13 @@ std::vector<uint8_t> Inflate::Decode()
 		throw RuntimeException("Unsupported compression method: \"" + std::to_string(compressionMethod) + "\"");
 	}
 
-	/*/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-	std::cout << "- data 0    " << std::setw(2) << std::setfill('0') << std::hex << (int)idatHdr1 << " (" << std::bitset<8>(idatHdr1) << ")" << std::endl;////
-	std::cout << "- data 1    " << std::setw(2) << std::setfill('0') << std::hex << (int)idatHdr2 << " (" << std::bitset<8>(idatHdr2) << ")" << std::endl;////
-	std::cout << "   - Compression method " << std::setw(2) << std::setfill('0') << std::dec << (int)compressionMethod << std::endl;//////////////////////////
-	std::cout << "   - Compression info   " << std::setw(2) << std::setfill('0') << std::dec << (int)(idatHdr1 >> 4) << std::endl;////////////////////////////
-	std::cout << "   - F Check            " << std::setw(2) << std::setfill('0') << std::dec << (int)(idatHdr2 & 0x1f) << std::endl;//////////////////////////
-	std::cout << "   - F DICT             " << std::setw(2) << std::setfill('0') << std::dec << (int)((idatHdr2 >> 5) & 0x1) << std::endl;////////////////////
-	std::cout << "   - F Level            " << std::setw(2) << std::setfill('0') << std::dec << (int)(idatHdr2 >> 6) << std::endl;////////////////////////////
-	/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////*/
+#ifdef ENABLE_LOGS
+	std::cout << "[Inflate::Decode] - Compression method " << std::setw(2) << std::setfill('0') << std::dec << (int)compressionMethod << std::endl;
+	std::cout << "                  - Compression info   " << std::setw(2) << std::setfill('0') << std::dec << (int)(idatHdr1 >> 4) << std::endl;
+	std::cout << "                  - F Check            " << std::setw(2) << std::setfill('0') << std::dec << (int)(idatHdr2 & 0x1f) << std::endl;
+	std::cout << "                  - F DICT             " << std::setw(2) << std::setfill('0') << std::dec << (int)((idatHdr2 >> 5) & 0x1) << std::endl;
+	std::cout << "                  - F Level            " << std::setw(2) << std::setfill('0') << std::dec << (int)(idatHdr2 >> 6) << std::endl;
+#endif
 
 	bool isLast = false;
 	do
@@ -56,7 +55,6 @@ std::unique_ptr<BlockDecoder> Inflate::GetDecoder()
 
 	if (!typeBit2 && !typeBit1) // 00
 	{
-		std::cout << "No Compression" << std::endl;
 		throw RuntimeException("Not Implemented"); // TODO
 	}
 	else if (!typeBit2 && typeBit1) // 01
