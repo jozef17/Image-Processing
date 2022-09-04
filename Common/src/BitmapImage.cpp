@@ -31,6 +31,8 @@ PACK(struct BITMAPINFOHEADER
 
 BitmapImage::BitmapImage(std::string filename)
 {
+	this->startPosition = Image::StartPosition::TopLeft;
+
 	// Check file
 	std::ifstream file(filename, std::ios::binary);
 	if (!file.is_open())

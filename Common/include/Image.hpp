@@ -10,7 +10,9 @@ class Pixel;
 class Image
 {
 public:
-	Image(uint32_t width, uint32_t height);
+	enum class StartPosition : uint8_t { TopLeft, BottomLeft };
+
+	Image(uint32_t width, uint32_t height, StartPosition startPosition = StartPosition::TopLeft);
 	~Image();
 
 	uint32_t GetWidth() const;
@@ -19,8 +21,12 @@ public:
 	Pixel GetPixel(uint32_t x, uint32_t y) const;
 	void  SetPixel(uint32_t x, uint32_t y, Pixel &p);
 
+	inline StartPosition GetStartPosition() const noexcept { return this->startPosition; };
+
 protected:
 	Image();
+
+	StartPosition startPosition = StartPosition::TopLeft;
 
 	uint32_t width;
 	uint32_t height;

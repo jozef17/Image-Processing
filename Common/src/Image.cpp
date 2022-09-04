@@ -2,7 +2,8 @@
 #include "Image.hpp"
 #include "Exception.hpp"
 
-Image::Image(uint32_t width, uint32_t height) : width(width), height(height)
+Image::Image(uint32_t width, uint32_t height, StartPosition startPosition)
+	: width(width), height(height), startPosition(startPosition)
 {
 	this->image = std::unique_ptr<std::unique_ptr<Pixel>[]>(new std::unique_ptr<Pixel>[width * height]);
 	for(unsigned int i = 0; i < width * height; i++)

@@ -39,6 +39,8 @@ enum class ColorType : uint8_t
 
 PngImage::PngImage(const std::string& filename)
 {
+	this->startPosition = Image::StartPosition::BottomLeft;
+
 	// Check file
 	std::ifstream file(filename, std::ios::binary);
 	if (!file.is_open())
