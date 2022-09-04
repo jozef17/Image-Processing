@@ -68,7 +68,7 @@ PngImage::PngImage(const std::string& filename)
 		}
 		else if (chunk->header.chunkType == "IDAT")
 		{
-			bitstream.Append(std::move(chunk->data), chunk->header.lenght);
+			bitstream.Append(std::move(chunk->data), chunk->header.length);
 		}
 
 		// Handle other chunks if needed
@@ -90,9 +90,9 @@ std::unique_ptr<Chunk> PngImage::LoadChnuk(std::ifstream& file)
 	// Read size
 	uint8_t data[4] = { 0 };
 	file.read((char*)data, 4);
-	chunk->header.lenght = TO_INT(data);
+	chunk->header.length = TO_INT(data);
 #ifdef ENABLE_LOGS
-	std::cout << "[PngImage::LoadChnuk] - Size: " << std::dec << chunk->header.lenght << std::endl;
+	std::cout << "[PngImage::LoadChnuk] - Size: " << std::dec << chunk->header.length << std::endl;
 #endif
 
 	// Read chunk type
@@ -103,11 +103,11 @@ std::unique_ptr<Chunk> PngImage::LoadChnuk(std::ifstream& file)
 #endif
 
 	// Read data
-	chunk->data = std::unique_ptr<uint8_t[]>(new uint8_t[chunk->header.lenght]);
-	file.read((char*)chunk->data.get(), chunk->header.lenght);
+	chunk->data = std::unique_ptr<uint8_t[]>(new uint8_t[chunk->header.length]);
+	file.read((char*)chunk->data.get(), chunk->header.length);
 #ifdef ENABLE_LOGS
 	std::cout << "                      - Data: ";
-	for (uint32_t i = 0; i < (chunk->header.lenght < 100 ? chunk->header.lenght : 100); i++)
+	for (uint32_t i = 0; i < (chunk->header.length < 100 ? chunk->header.length : 100); i++)
 	{
 		for (uint32_t j = 0; j < 8; j++)
 		{
@@ -117,7 +117,7 @@ std::unique_ptr<Chunk> PngImage::LoadChnuk(std::ifstream& file)
 		std::cout << " ";
 	}
 
-	if (chunk->header.lenght > 100)
+	if (chunk->header.length > 100)
 	{
 		std::cout << "...";
 	}

@@ -14,7 +14,7 @@ class BitStream;
 // Chunk header
 struct ChunkHdr
 {
-	uint32_t	lenght;
+	uint32_t	length;
 	std::string	chunkType;
 };
 
