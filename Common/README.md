@@ -9,7 +9,7 @@ Static library containing shared functionality
     - [RFC 1951 "DEFLATE Compressed Data Format Specification"](https://datatracker.ietf.org/doc/html/rfc1951)
 - **Unsupported features:**
     - Only RGB and RGBA pixel formats are supported
-    - Interface method [DAM7](https://en.wikipedia.org/wiki/Adam7_algorithm) is not supported
+    - Interface method [ADAM7](https://en.wikipedia.org/wiki/Adam7_algorithm) is not supported
     - Only 8 bit channels are supported
     - Zlib/Inflate block type 00 is not supported (uncompressed block)
 
