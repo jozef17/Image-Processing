@@ -16,6 +16,21 @@
 
 #define TO_INT(data)  ((data[0] << 8 * 3) | (data[1] << 8 * 2) | (data[2] << 8 * 1) | data[3])
 
+// Chunk header
+struct ChunkHdr
+{
+	uint32_t	length;
+	std::string	chunkType;
+};
+
+// Chunk
+struct Chunk
+{
+	ChunkHdr					header = { 0, { 0,0,0,0 } };
+	uint8_t						crc[4] = { 0,0,0,0 }; // Cyclic redundancy check
+	std::unique_ptr<uint8_t[]>	data;
+};
+
 // Info Header
 PACK(struct IHDR
 {

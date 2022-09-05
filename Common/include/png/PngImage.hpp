@@ -10,21 +10,7 @@
 #include "Image.hpp"
 
 class BitStream;
-
-// Chunk header
-struct ChunkHdr
-{
-	uint32_t	length;
-	std::string	chunkType;
-};
-
-// Chunk
-struct Chunk
-{
-	ChunkHdr					header = { 0, { 0,0,0,0 } };
-	uint8_t						crc[4] = { 0,0,0,0 }; // Cyclic redundancy check
-	std::unique_ptr<uint8_t[]>	data;
-};
+struct Chunk;
 
 class PngImage : public Image
 {

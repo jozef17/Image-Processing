@@ -9,6 +9,7 @@ class Utils
 {
 public:
 	Utils() = delete;
+	~Utils() = delete;
 
 	static bool EndsWith(const std::string& str, const std::string& ending) noexcept;
 

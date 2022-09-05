@@ -11,6 +11,8 @@ class Type01Decoder final : public HuffmanDecoder
 {
 public:
 	Type01Decoder(BitStream& bitstream);
+	Type01Decoder(const Type01Decoder& old) = default;
+	Type01Decoder& operator=(const Type01Decoder& old) = default;
 	virtual ~Type01Decoder() = default;
 
 protected: 

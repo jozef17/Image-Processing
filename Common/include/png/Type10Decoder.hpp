@@ -3,6 +3,8 @@
 #ifndef TYPE_10_DECODER_HPP__
 #define TYPE_10_DECODER_HPP__
 
+#include <vector>
+
 #include "HuffmanDecoder.hpp"
 
 struct Code;

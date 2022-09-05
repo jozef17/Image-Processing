@@ -1,4 +1,3 @@
-#include "Pixel.hpp"
 #include "Image.hpp"
 #include "Exception.hpp"
 
@@ -11,12 +10,6 @@ Image::Image(uint32_t width, uint32_t height, StartPosition startPosition)
 		this->image[i] = std::unique_ptr<Pixel>(new Pixel);
 	}
 }
-
-Image::~Image() 
-{}
-
-Image::Image() : width(0), height(0) 
-{}
 
 uint32_t Image::GetWidth() const
 {

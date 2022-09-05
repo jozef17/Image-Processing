@@ -45,6 +45,7 @@ private:
 
 	std::vector<std::unique_ptr<uint8_t[]>> data;
 	std::vector<uint32_t> lengths;
+
 };
 
 #endif /* BIT_STREAM_HPP__ */

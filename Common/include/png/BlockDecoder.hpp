@@ -9,7 +9,6 @@ class BlockDecoder
 {
 public:
 	virtual ~BlockDecoder() {};
-
 	virtual void Decode(std::vector<uint8_t>& data) = 0;
 
 protected:
