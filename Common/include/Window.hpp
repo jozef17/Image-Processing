@@ -32,11 +32,14 @@ public:
 	~Window();
 
 	void SetImage(std::shared_ptr<Image> image);
+	void SetImage(std::unique_ptr<Image> image);
 	void SetTitle(std::string title);
 
 	void Show();
 
 private:
+	Image* GetImage();
+	
 	void UpdateFramebuffer();
 
 	// Window Initialization
@@ -52,14 +55,15 @@ private:
 	void UpdateView();
 
 	// Display data
-	std::shared_ptr<Image> image;
 	Framebuffer framebuffer;
+	std::shared_ptr<Image> shptrImage = nullptr;
+	std::unique_ptr<Image> uqptrImage = nullptr;
 
 	// Window view 
-	std::string title;
+	void* window; // glfw window
 	uint32_t width;
 	uint32_t height;
-	void* window; // glfw window
+	std::string title;
 
 	// Image location
 	int32_t locX;
