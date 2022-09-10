@@ -28,7 +28,9 @@ Filter::~Filter()
 #ifndef USE_CUDA
 std::shared_ptr<Image> Filter::ApplyFilter()
 {
-	std::shared_ptr<Image> result = std::shared_ptr<Image>(new Image(this->image->GetWidth(), this->image->GetHeight()));
+	std::shared_ptr<Image> result = std::shared_ptr<Image>(
+		new Image(this->image->GetWidth(), this->image->GetHeight(), this->image->GetStartPosition())
+	);
 
 	const int threadCount = 8;
 	auto applyFilterFunct = [&](int id) -> void

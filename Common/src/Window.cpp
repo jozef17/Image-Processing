@@ -69,6 +69,9 @@ Window::~Window()
 void Window::SetImage(std::shared_ptr<Image> image)
 {
 	this->image = image;
+
+	this->width = std::min(this->image->GetWidth(), width);
+	this->height = std::min(this->image->GetHeight(), height);
 }
 
 void Window::SetTitle(std::string title)
@@ -118,7 +121,22 @@ void Window::UpdateFramebuffer()
 	{
 		for (uint32_t j = 0; j < this->width; j++) // x
 		{
-			auto pixel = this->image->GetPixel((j / this->zoom) + this->locX, (i / this->zoom) + this->locY);
+			Pixel pixel;
+			if (this->image->GetStartPosition() == Image::StartPosition::TopLeft)
+			{
+				pixel = this->image->GetPixel(
+					(j / this->zoom) + this->locX,
+					(i / this->zoom) + this->locY
+				);				
+			}
+			else
+			{
+				pixel = this->image->GetPixel(
+					(j / this->zoom) + this->locX,
+					(this->image->GetHeight() - 1) - (i / this->zoom) - this->locY
+				);
+			}
+
 			auto rgb = pixel.ToRGB();
 			std::memcpy(&framebuffer[index], &rgb, 3);
 			index += 3;

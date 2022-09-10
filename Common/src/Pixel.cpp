@@ -45,7 +45,7 @@ RGBAPixel Pixel::ToRGBA()
 		return RGBAPixel{ this->pixel.rgbPixel.red,
 						  this->pixel.rgbPixel.green,
 						  this->pixel.rgbPixel.blue,
-						  0 };
+						  255 };
 	}
 	else if (this->type == Pixel::PixelType::RGBA)
 	{

@@ -1,5 +1,5 @@
 # Image Viewer
-Application for displaying raw and bmp images
+Application for displaying raw, bmp and png images
 
 ![Demo](media/ImageViewer.gif)
 

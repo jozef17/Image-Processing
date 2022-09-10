@@ -10,7 +10,7 @@ public:
 	virtual ~ArgumentHandler() = default;
 
 protected:
-	ArgumentHandler() {};
+	ArgumentHandler() = default;
 
 };
 
