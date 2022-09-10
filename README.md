@@ -7,6 +7,11 @@
     - Bitmap (.bmp)
     - Portable Network Graphics (.png) 
         - **NOTE:** not whole standard is supported, scroll down for list of unsupported features.
+- Project overview:
+    - Common library - Shared functionality
+    - DCT Image compression
+    - Convolution Filter
+    - Image Viewer
 
 ## Common
 Static library containing shared functionality
@@ -63,6 +68,12 @@ Static library containing shared functionality
     - First Pixel being bottom left
 - Arrow keys and WASD for moving image
 - \+ and - for zoom in and out
+
+## [Compression](Compression)
+- Simplified loosy jpeg compression algorithm (DCT - Discrete Cosine Transform method)
+- Parallelised using C++'s [std::thread](https://en.cppreference.com/w/cpp/thread/thread)
+
+![Demo](Compression/media/Demo.png)
 
 ## [Convolution Filter](ConvolutionFilter)
 - Application for applying convolution filter on input image
