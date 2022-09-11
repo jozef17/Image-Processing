@@ -22,7 +22,7 @@ int CompressionHandler::Run()
 		decodedImage = encoder.Decode();
 	}
 
-	// TODO display image
+	// Display image
 	auto width = std::min(decodedImage->GetWidth(), (uint32_t)1'024);
 	auto height = std::min(decodedImage->GetHeight(), (uint32_t)512);
 

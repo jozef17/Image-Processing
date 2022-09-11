@@ -26,9 +26,9 @@ std::unique_ptr<Image> DCT::dct()
 	{
 		// Process (8x8) blocks
 		
-		for (unsigned int i = id * 8; i < this->image.GetWidth(); i += 8 * threadCount) // y
+		for (unsigned int i = id * 8; i < this->image.GetHeight(); i += 8 * threadCount) // y
 		{
-			for (unsigned int j = 0; j < this->image.GetHeight(); j += 8) // x
+			for (unsigned int j = 0; j < this->image.GetWidth(); j += 8) // x
 			{
 				// Process 8x8 blocks
 				dctBlock(*result.get(), j, i);
@@ -64,9 +64,9 @@ std::unique_ptr<Image> DCT::idct()
 	{
 		// Process (8x8) blocks
 
-		for (unsigned int i = id * 8; i < this->image.GetWidth(); i += 8 * threadCount) // y
+		for (unsigned int i = id * 8; i < this->image.GetHeight(); i += 8 * threadCount) // y
 		{
-			for (unsigned int j = 0; j < this->image.GetHeight(); j += 8) // x
+			for (unsigned int j = 0; j < this->image.GetWidth(); j += 8) // x
 			{
 				// Process 8x8 blocks
 				idctBlock(*result.get(), j, i);
@@ -96,7 +96,7 @@ std::unique_ptr<Image> DCT::idct()
 // Calculates DCT for 8 by 8 block
 void DCT::dctBlock(Image& result, int xOffset, int yOffset)
 {
-	double sum[3];
+	double sum[3] = { 0,0,0 };
 
 	int M = (this->image.GetWidth() - xOffset) > 8 ? 8 : this->image.GetWidth() - xOffset;
 	int N = (this->image.GetHeight() - yOffset) > 8 ? 8 : this->image.GetHeight() - yOffset;
@@ -143,7 +143,7 @@ void DCT::dctBlock(Image& result, int xOffset, int yOffset)
 // Calculates INverse DCT for 8 by 8 block
 void DCT::idctBlock(Image& result, int xOffset, int yOffset)
 {
-	double sum[3];
+	double sum[3] = { 0,0,0 };
 
 	int M = (this->image.GetWidth() - xOffset) > 8 ? 8 : this->image.GetWidth() - xOffset;
 	int N = (this->image.GetHeight() - yOffset) > 8 ? 8 : this->image.GetHeight() - yOffset;
@@ -151,9 +151,9 @@ void DCT::idctBlock(Image& result, int xOffset, int yOffset)
 	double f = (double)2.0 / std::sqrt((double)M * (double)N);
 
 	// Loop at block
-	for (int x = 0; x < M; x++)
+	for (int y = 0; y < N; y++)
 	{
-		for (int y = 0; y < N; y++)
+		for (int x = 0; x < M; x++)
 		{
 			// Clear sum
 			for (char c = 0; c < 3; c++)
