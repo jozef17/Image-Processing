@@ -12,6 +12,7 @@ public:
 	~Utils() = delete;
 
 	static bool EndsWith(const std::string& str, const std::string& ending) noexcept;
+	static bool IsNumber(const std::string& str) noexcept;
 
 	static std::string ToLowercase(std::string str) noexcept;
 	static std::string ToUppercase(std::string str) noexcept;

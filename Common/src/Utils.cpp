@@ -22,6 +22,19 @@ bool Utils::EndsWith(const std::string& str, const std::string& ending) noexcept
 	return true;
 }
 
+bool Utils::IsNumber(const std::string& str) noexcept
+{
+	for (auto character : str)
+	{
+		if (!(character >= '0' && character <= '9' || character == '.'))
+		{
+			return false;
+		}
+	}
+
+	return true;
+}
+
 std::string Utils::ToLowercase(std::string str) noexcept
 {
 	std::transform(str.begin(), str.end(), str.begin(), ::tolower);
