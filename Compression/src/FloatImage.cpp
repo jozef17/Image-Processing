@@ -6,7 +6,7 @@ FloatImage::FloatImage(uint32_t width, uint32_t height) : width(width), height(h
 	this->image.resize(width * height);
 }
 
-FloatImage::FloatImage(Image& image) : width(image.GetWidth()), height(image.GetHeight())
+FloatImage::FloatImage(const Image& image) : width(image.GetWidth()), height(image.GetHeight())
 {
 	this->image.resize(image.GetWidth() * image.GetHeight());
 

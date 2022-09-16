@@ -12,20 +12,19 @@
 #endif
 #include <Pixel.hpp>
 
-constexpr int threadCount = 1;
+constexpr int threadCount = 8;
 
-DCT::DCT(Image& image) : image(std::move(image))
+DCT::DCT(const FloatImage& image) : image(image)
 {}
 
-std::unique_ptr<Image> DCT::dct()
+std::unique_ptr<FloatImage> DCT::dct()
 {
-	auto result = std::unique_ptr<Image>(new Image(this->image.GetWidth(), this->image.GetHeight()));
+	auto result = std::unique_ptr<FloatImage>(new FloatImage(this->image.GetWidth(), this->image.GetHeight()));
 
-	// TODO lambda
 	auto applyDCTFunct = [&](int id) -> void
 	{
 		// Process (8x8) blocks
-		
+
 		for (unsigned int i = id * 8; i < this->image.GetHeight(); i += 8 * threadCount) // y
 		{
 			for (unsigned int j = 0; j < this->image.GetWidth(); j += 8) // x
@@ -35,35 +34,33 @@ std::unique_ptr<Image> DCT::dct()
 			}
 		}
 	};
-	/*
+
 	// Run filter in parallel
 	std::thread threads[threadCount - 1];
 	for (int i = 0; i < threadCount - 1; i++)
 	{
 		threads[i] = std::thread(applyDCTFunct, i);
-	}*/
+	}
 
 	// Make use of main thread
 	applyDCTFunct(threadCount - 1);
-	/*
+
 	// Wait for threads to finish
 	for (int i = 0; i < threadCount - 1; i++)
 	{
 		threads[i].join();
-	}*/
+	}
 
 	return std::move(result);
 }
 
-std::unique_ptr<Image> DCT::idct()
+std::unique_ptr<FloatImage> DCT::idct()
 {
-	auto result = std::unique_ptr<Image>(new Image(this->image.GetWidth(), this->image.GetHeight()));
+	auto result = std::unique_ptr<FloatImage>(new FloatImage(this->image.GetWidth(), this->image.GetHeight()));
 
-	// TODO lambda
 	auto applyDCTFunct = [&](int id) -> void
 	{
 		// Process (8x8) blocks
-
 		for (unsigned int i = id * 8; i < this->image.GetHeight(); i += 8 * threadCount) // y
 		{
 			for (unsigned int j = 0; j < this->image.GetWidth(); j += 8) // x
@@ -73,105 +70,101 @@ std::unique_ptr<Image> DCT::idct()
 			}
 		}
 	};
-	/*
+
 	// Run filter in parallel
 	std::thread threads[threadCount - 1];
 	for (int i = 0; i < threadCount - 1; i++)
 	{
 		threads[i] = std::thread(applyDCTFunct, i);
 	}
-	*/
+
 	// Make use of main thread
 	applyDCTFunct(threadCount - 1);
-	/*
+
 	// Wait for threads to finish
 	for (int i = 0; i < threadCount - 1; i++)
 	{
 		threads[i].join();
-	}*/
+	}
 
 	return std::move(result);
 }
 
 // Calculates DCT for 8 by 8 block
-void DCT::dctBlock(Image& result, int xOffset, int yOffset)
+void DCT::dctBlock(FloatImage& result, int xOffset, int yOffset)
 {
 	double sum[3] = { 0,0,0 };
 
-	int M = (this->image.GetWidth() - xOffset) > 8 ? 8 : this->image.GetWidth() - xOffset;
-	int N = (this->image.GetHeight() - yOffset) > 8 ? 8 : this->image.GetHeight() - yOffset;
+	auto M = (this->image.GetWidth() - xOffset) > 8 ? 8u : this->image.GetWidth() - xOffset;
+	auto N = (this->image.GetHeight() - yOffset) > 8 ? 8u : this->image.GetHeight() - yOffset;
 
-	double f = (double)2.0 / std::sqrt((double)M * (double)N);
+	auto f = 2 / std::sqrt((float)M * (float)N);
 
 	// Loop at block
-	for (int m = 0; m < M; m++)
+	for (auto m = 0u; m < M; m++)
 	{
-		for (int n = 0; n < N; n++)
+		for (auto n = 0u; n < N; n++)
 		{
 			// Clear sum
-			for (char c = 0; c < 3; c++)
-				sum[c] = 0;
+			std::memset(sum, 0, 3 * sizeof(double));
 
 			// Calculate Cos Sum
-			for (int x = 0; x < M; x++)
+			for (auto y = 0u; y < N; y++)
 			{
-				for (int y = 0; y < N; y++)
+				for (auto x = 0u; x < M; x++)
 				{
-					double cos = std::cos(((2 * x + 1) * m * M_PI) / (2 * M)) * std::cos(((2 * y + 1) * n * M_PI) / (2 * N));
-					
-					auto pixel = this->image.GetPixel(xOffset + x, yOffset + y).ToYCbCr();
-					sum[0] += pixel.y  * cos;
-					sum[1] += pixel.Cb * cos;
-					sum[2] += pixel.Cr * cos;
+					auto cos = std::cos(((2 * x + 1) * m * M_PI) / (2 * M)) * std::cos(((2 * y + 1) * n * M_PI) / (2 * N));
+
+					auto data = this->image.Get(xOffset + x, yOffset + y);
+					sum[0] += data.data[0] * cos;
+					sum[1] += data.data[1] * cos;
+					sum[2] += data.data[2] * cos;
 				}
 			}
 
-			double cm = m == 0 ? 1.0 / std::sqrt(2.0) : 1.0;
-			double cn = n == 0 ? 1.0 / std::sqrt(2.0) : 1.0;
+			float cm = m == 0 ? 1.0f / std::sqrt(2.0f) : 1.0f;
+			float cn = n == 0 ? 1.0f / std::sqrt(2.0f) : 1.0f;
 
 			sum[0] *= f * cm * cn;
-			sum[1] *= f * cm * cn;
-			sum[2] *= f * cm * cn;
+			sum[1] *= f * cm * cn; 
+			sum[2] *= f * cm * cn; 
 
-			YCbCrPixel pixel
-				= { static_cast<uint8_t>(sum[0]), static_cast<uint8_t>(sum[1]), static_cast<uint8_t>(sum[2]) };
-			result.SetPixel(xOffset + m, yOffset + n, Pixel{ pixel });
+			result.Set(xOffset + m, yOffset + n, FloatData{ (float)sum[0],(float)sum[1],(float)sum[2]} );
 		}
 	}
 }
 
 // Calculates INverse DCT for 8 by 8 block
-void DCT::idctBlock(Image& result, int xOffset, int yOffset)
+void DCT::idctBlock(FloatImage& result, int xOffset, int yOffset)
 {
 	double sum[3] = { 0,0,0 };
 
-	int M = (this->image.GetWidth() - xOffset) > 8 ? 8 : this->image.GetWidth() - xOffset;
-	int N = (this->image.GetHeight() - yOffset) > 8 ? 8 : this->image.GetHeight() - yOffset;
+	auto M = (this->image.GetWidth() - xOffset) > 8 ? 8u : this->image.GetWidth() - xOffset;
+	auto N = (this->image.GetHeight() - yOffset) > 8 ? 8u : this->image.GetHeight() - yOffset;
 
-	double f = (double)2.0 / std::sqrt((double)M * (double)N);
+	auto f = 2.0 / std::sqrt((double)M * (double)N);
 
 	// Loop at block
-	for (int y = 0; y < N; y++)
+	for (auto y = 0u; y < N; y++)
 	{
-		for (int x = 0; x < M; x++)
+		for (auto x = 0u; x < M; x++)
 		{
 			// Clear sum
-			for (char c = 0; c < 3; c++)
-				sum[c] = 0;
+			std::memset(sum, 0, 3 * sizeof(double));
 
 			// Calculate Sum
-			for (int m = 0; m < M; m++)
+			for (auto n = 0u; n < N; n++)
 			{
-				for (int n = 0; n < N; n++)
+				for (auto m = 0u; m < M; m++)
 				{
-					double cm = m == 0 ? 1.0 / std::sqrt(2) : 1.0;
-					double cn = n == 0 ? 1.0 / std::sqrt(2) : 1.0;
-					double cos = std::cos(((2 * x + 1) * m * M_PI) / (2 * M)) * std::cos(((2 * y + 1) * n * M_PI) / (2 * N));
+					auto cm = m == 0 ? 1.0 / std::sqrt(2) : 1.0;
+					auto cn = n == 0 ? 1.0 / std::sqrt(2) : 1.0;
+					auto cos = std::cos(((2 * x + 1) * m * M_PI) / (2 * M)) * std::cos(((2 * y + 1) * n * M_PI) / (2 * N));
 
-					auto pixel = this->image.GetPixel(xOffset + m, yOffset + n).ToYCbCr();
-					sum[0] += cm * cn * pixel.y  * cos;
-					sum[1] += cm * cn * pixel.Cb * cos;
-					sum[2] += cm * cn * pixel.Cr * cos;
+					auto data = this->image.Get(xOffset + m, yOffset + n);
+					sum[0] += cm * cn * data.data[0] * cos;
+					sum[1] += cm * cn * data.data[1] * cos;
+					sum[2] += cm * cn * data.data[2] * cos;
 				}
 			}
 
@@ -180,9 +173,7 @@ void DCT::idctBlock(Image& result, int xOffset, int yOffset)
 			sum[1] *= f;
 			sum[2] *= f;
 
-			YCbCrPixel pixel
-				= { static_cast<uint8_t>(sum[0]) ,static_cast<uint8_t>(sum[1]) ,static_cast<uint8_t>(sum[2]) };
-			result.SetPixel(xOffset + x, yOffset + y, Pixel{ pixel });
+			result.Set(xOffset + x, yOffset + y, FloatData{ (float)sum[0],(float)sum[1],(float)sum[2]});
 		}
 	}
 }

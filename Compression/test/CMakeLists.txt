@@ -2,8 +2,10 @@ cmake_minimum_required (VERSION 3.8)
 
 set(SOURCES
 	# Tests
+	DCTTest.cpp
 	FloatImageTest.cpp
 	# Units under test
+	../src/DCT.cpp
 	../src/FloatImage.cpp
 )
 

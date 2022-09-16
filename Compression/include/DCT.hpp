@@ -5,30 +5,28 @@
 
 #include <memory>
 
-#include "Image.hpp"
+#include "FloatImage.hpp"
 
 // Discrete cosine transform
 class DCT
 {
 public:
-	DCT(Image &image);
+	DCT(const FloatImage &image);
 
 	// Applies Discrete Cosine Transformation to image
-	std::unique_ptr<Image> dct();
+	std::unique_ptr<FloatImage> dct();
 
 	// Applies Inverse Discrete Cosine Transformation to image
-	std::unique_ptr<Image> idct();
+	std::unique_ptr<FloatImage> idct();
 
 private:
-
-//	std::unique_ptr<Image> Apply(std::unique_ptr<Image>(void));
 	// Calculate dct for 8 by 8 block
-	void dctBlock(Image &result, int xOffset, int yOffset);
+	void dctBlock(FloatImage &result, int xOffset, int yOffset);
 
 	// Calculate idct for 8 by 8 block
-	void idctBlock(Image &result, int xOffset, int yOffset);
+	void idctBlock(FloatImage &result, int xOffset, int yOffset);
 
-	Image& image;
+	const FloatImage &image;
 };
 
 #endif /* DCT_HPP__ */

@@ -16,7 +16,7 @@ class FloatImage
 {
 public:
 	FloatImage(uint32_t width, uint32_t height);
-	FloatImage(Image& image);
+	FloatImage(const Image& image);
 
 	std::unique_ptr<Image> GetImage() const;
 
