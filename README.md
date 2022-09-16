@@ -1,19 +1,20 @@
 # Image Processing
 - CMake based projects related to Image Processing
-- C++
+- Written C++
+- Parallelised using [std::thread](https://en.cppreference.com/w/cpp/thread/thread) and / or [Nvidia CUDA](https://developer.nvidia.com/cuda-zone)
 - Unit tests written for Google Test framework
-- All project support following image formats:
+- All project support following input image formats:
     - RAW
     - Bitmap (.bmp)
     - Portable Network Graphics (.png) 
-        - **NOTE:** not whole standard is supported, scroll down for list of unsupported features.
-- Project overview:
-    - Common library - Shared functionality
-    - DCT Image compression
-    - Convolution Filter
-    - Image Viewer
+        - **NOTE:** not the whole standard is supported, scroll down for list of unsupported features.
+- Projects overview:
+    - [Common library (shared functionality)](Common)
+    - [DCT Image compression](Compression)
+    - [Convolution Filter](ConvolutionFilter)
+    - [Image Viewer](ImageViewer)
 
-## Common
+## [Common](Common)
 Static library containing shared functionality
 
 ### BitmapImage
@@ -73,7 +74,12 @@ Static library containing shared functionality
 - Simplified loosy jpeg compression algorithm (DCT - Discrete Cosine Transform method)
 - Parallelised using C++'s [std::thread](https://en.cppreference.com/w/cpp/thread/thread)
 
-![Demo](Compression/media/Demo.png)
+### 3% Quality
+![Demo](Compression/media/3.png)
+### 10% Quality
+![Demo](Compression/media/10.png)
+### 95% Quality
+![Demo](Compression/media/95.png)
 
 ## [Convolution Filter](ConvolutionFilter)
 - Application for applying convolution filter on input image
