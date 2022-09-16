@@ -4,9 +4,11 @@ set(SOURCES
 	# Tests
 	DCTTest.cpp
 	FloatImageTest.cpp
-	# Units under test
+	ImageCompressorTest.cpp
+	# UUTs 
 	../src/DCT.cpp
 	../src/FloatImage.cpp
+	../src/ImageCompressor.cpp
 )
 
 add_executable(CompressionTests ${SOURCES})

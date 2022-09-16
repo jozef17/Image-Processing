@@ -2,6 +2,7 @@
 #include "ImageCompressor.hpp"
 #include "Window.hpp"
 #include "Image.hpp"
+#include "FloatImage.hpp"
 #include "Pixel.hpp"
 
 #include <algorithm>
@@ -14,12 +15,15 @@ int CompressionHandler::Run()
 {
 	std::unique_ptr<Image> decodedImage;
 	{
-		// Compress
-		ImageCompressor encoder(std::move(this->originalImage), this->quality);
-		auto encodedImage = encoder.Encode();
+		// Encode
+		FloatImage original(*this->originalImage.get());
+		ImageCompressor encoder(original, this->quality);
+		auto encoded = encoder.Encode();
 
-		ImageCompressor decoder(std::move(encodedImage), this->quality);
-		decodedImage = encoder.Decode();
+		// Decode
+		ImageCompressor decoder(*encoded.get(), this->quality);
+		auto decoded = decoder.Decode();
+		decodedImage = decoded->GetImage();
 	}
 
 	// Display image

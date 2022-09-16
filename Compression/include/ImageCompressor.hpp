@@ -3,23 +3,22 @@
 #ifndef IMAGE_COMPRESSOR_HPP__
 #define IMAGE_COMPRESSOR_HPP__
 
+#include "FloatImage.hpp"
 #include <memory>
-
-class Image;
 
 class ImageCompressor
 {
 public:	
-	ImageCompressor(std::unique_ptr<Image> image, float quality);
+	ImageCompressor(const FloatImage &image, float quality);
 		
-	std::unique_ptr<Image> Encode();
+	std::unique_ptr<FloatImage> Encode();
 
-	std::unique_ptr<Image> Decode();
+	std::unique_ptr<FloatImage> Decode();
 
 private:
 	float GetAlpha(float quality);
 
-	std::unique_ptr<Image> image;
+	const FloatImage& image;
 	float alpha;
 
 };
