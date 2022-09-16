@@ -33,6 +33,7 @@ int CompressionHandler::Run()
 	Window window(width, height);
 
 	window.SetImage(std::move(decodedImage));
+	window.SetTitle(std::to_string(this->quality)+"%");
 	window.Show();
 
 	return 0;

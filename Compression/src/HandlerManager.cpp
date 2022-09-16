@@ -22,7 +22,7 @@ std::unique_ptr<ArgumentHandler> HandlerManager::GetHandler(const std::map<std::
 		auto& parameters = options.find("-f") != options.end() ? options.at("-f") : options.at("--file");
 		std::unique_ptr<Image> image = GetImage(parameters);
 
-		float quality = 100;
+		float quality = 99.99f;
 		if (options.find("-q") != options.end() ||
 			options.find("--quality") != options.end())
 		{
@@ -44,7 +44,7 @@ float HandlerManager::GetQuality(const std::vector<std::string> &arg)
 	}
 
 	auto quality = std::stof(arg.at(0));
-	if (quality < 0 || quality >= 100)
+	if (quality <= 0 || quality >= 100)
 	{
 		throw RuntimeException("Invalid Quality \"" + arg.at(0) + "\"!");
 	}
