@@ -6,11 +6,11 @@
 
 ## Examples
 ### 3% Quality
-![3%](media/3.png)
+![3%](media/3.PNG)
 ### 10% Quality
-![10%](media/10.png)
+![10%](media/10.PNG)
 ### 95% Quality
-![95%](media/95.png)
+![95%](media/95.PNG)
 
 ## Workflow
 ![CompressionWorkflow](media/CompressionWorkflow.png)

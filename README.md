@@ -75,11 +75,11 @@ Static library containing shared functionality
 - Parallelised using C++'s [std::thread](https://en.cppreference.com/w/cpp/thread/thread)
 
 ### 3% Quality
-![Demo](Compression/media/3.png)
+![Demo](Compression/media/3.PNG)
 ### 10% Quality
-![Demo](Compression/media/10.png)
+![Demo](Compression/media/10.PNG)
 ### 95% Quality
-![Demo](Compression/media/95.png)
+![Demo](Compression/media/95.PNG)
 
 ## [Convolution Filter](ConvolutionFilter)
 - Application for applying convolution filter on input image
