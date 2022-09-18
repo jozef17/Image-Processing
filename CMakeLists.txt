@@ -27,5 +27,6 @@ endif()
 
 # Projects
 add_subdirectory ("Common")
+add_subdirectory ("Compression")
 add_subdirectory ("ConvolutionFilter")
 add_subdirectory ("ImageViewer")

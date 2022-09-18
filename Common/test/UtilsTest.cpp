@@ -17,3 +17,10 @@ TEST(UtilsTest, ToUppercase)
 {
 	EXPECT_EQ(Utils::ToUppercase("AbCDeF"), "ABCDEF");
 }
+
+TEST(UtilsTest, IsNumber)
+{
+	EXPECT_EQ(Utils::IsNumber("AbCDeF"), false);
+	EXPECT_EQ(Utils::IsNumber("123"), true);
+	EXPECT_EQ(Utils::IsNumber("12.3"), true);
+}

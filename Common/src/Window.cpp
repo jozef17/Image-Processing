@@ -48,7 +48,7 @@ void* Framebuffer::Get()
 
 Window::Window(uint32_t width, uint32_t height)
 	: width(width), height(height), locX(0), locY(0),
-	zoom(1), image(nullptr), window(nullptr)
+	zoom(1), uqptrImage(nullptr), shptrImage(nullptr), window(nullptr)
 {
 	this->framebuffer.Resize(width * height * 3);
 }
@@ -68,10 +68,20 @@ Window::~Window()
 
 void Window::SetImage(std::shared_ptr<Image> image)
 {
-	this->image = image;
+	this->shptrImage = image;
+	this->uqptrImage = nullptr;
 
-	this->width = std::min(this->image->GetWidth(), width);
-	this->height = std::min(this->image->GetHeight(), height);
+	this->width = std::min(this->shptrImage->GetWidth(), width);
+	this->height = std::min(this->shptrImage->GetHeight(), height);
+}
+
+void Window::SetImage(std::unique_ptr<Image> image)
+{
+	this->uqptrImage = std::move(image);
+	this->shptrImage = nullptr;
+
+	this->width = std::min(this->uqptrImage->GetWidth(), width);
+	this->height = std::min(this->uqptrImage->GetHeight(), height);
 }
 
 void Window::SetTitle(std::string title)
@@ -108,12 +118,19 @@ void Window::Show()
 	this->window = nullptr;
 }
 
+Image* Window::GetImage()
+{
+	return this->shptrImage == nullptr ? this->uqptrImage.get() : this->shptrImage.get();
+}
+
 void Window::UpdateFramebuffer()
 {
-	if (this->image == nullptr)
+	if (this->shptrImage == nullptr && this->uqptrImage == nullptr)
 	{
 		return;
 	}
+
+	auto image = GetImage();
 
 	auto index = 0;
 	uint8_t* framebuffer = (uint8_t*)this->framebuffer.Get();
@@ -122,18 +139,18 @@ void Window::UpdateFramebuffer()
 		for (uint32_t j = 0; j < this->width; j++) // x
 		{
 			Pixel pixel;
-			if (this->image->GetStartPosition() == Image::StartPosition::TopLeft)
+			if (image->GetStartPosition() == Image::StartPosition::TopLeft)
 			{
-				pixel = this->image->GetPixel(
+				pixel = image->GetPixel(
 					(j / this->zoom) + this->locX,
 					(i / this->zoom) + this->locY
 				);				
 			}
 			else
 			{
-				pixel = this->image->GetPixel(
+				pixel = image->GetPixel(
 					(j / this->zoom) + this->locX,
-					(this->image->GetHeight() - 1) - (i / this->zoom) - this->locY
+					(image->GetHeight() - 1) - (i / this->zoom) - this->locY
 				);
 			}
 
@@ -215,8 +232,9 @@ void Window::HandleKeyPressed(uint16_t key, uint16_t action)
 void Window::HandleResize(uint32_t width, uint32_t height)
 {
 	// Update window dimmensions
-	this->width = std::min(this->image->GetWidth(), width);
-	this->height = std::min(this->image->GetHeight(), height);
+	auto image = GetImage();
+	this->width = std::min(image->GetWidth(), width);
+	this->height = std::min(image->GetHeight(), height);
 
 	// Update framebuffer size
 	this->framebuffer.Resize(this->width * this->height * 3);
@@ -235,8 +253,9 @@ void Window::UpdateView()
 	this->locY = std::max(0, this->locY);
 
 	// Left and bottom image borders
-	int32_t limitX = this->image->GetWidth() - (this->width / this->zoom);
-	int32_t limitY = this->image->GetHeight() - (this->height / this->zoom);
+	auto image = GetImage();
+	int32_t limitX = image->GetWidth() - (this->width / this->zoom);
+	int32_t limitY = image->GetHeight() - (this->height / this->zoom);
 	this->locX = std::min(this->locX, limitX);
 	this->locY = std::min(this->locY, limitY);
 }
