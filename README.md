@@ -1,6 +1,6 @@
 # Image Processing
 - CMake based projects related to Image Processing
-- Written C++
+- Written in C++
 - Parallelised using [std::thread](https://en.cppreference.com/w/cpp/thread/thread) and / or [Nvidia CUDA](https://developer.nvidia.com/cuda-zone)
 - Unit tests written for Google Test framework
 - All project support following input image formats:
@@ -67,8 +67,11 @@ Static library containing shared functionality
 - Displaying images based on their starting position:
     - First Pixel being top left
     - First Pixel being bottom left
-- Arrow keys and WASD for moving image
-- \+ and - for zoom in and out
+- Keyboard and joystick / gamepad inouts are supported
+- Arrow keys, WASD and joystick for moving image
+- Zoom in and out:
+    - \+ and RT (Right Trigger) to zoom in;
+    - - and LT (Left Trigger) to zoom out;
 
 ## [Compression](Compression)
 - Simplified loosy jpeg compression algorithm (DCT - Discrete Cosine Transform method)
