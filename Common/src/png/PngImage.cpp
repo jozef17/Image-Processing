@@ -9,7 +9,6 @@
 #include <memory>
 #include <cstdint>
 
-#include <iostream>
 #ifdef ENABLE_LOGS
 #include <iostream>
 #include <iomanip>
@@ -192,7 +191,7 @@ void PngImage::ProcessHeader(std::unique_ptr<Chunk> &ihdrChunk)
 	{
 		throw RuntimeException("Unsupported color type: \"" + std::to_string(ihdr.colorType) + "\"");
 	}
-	std::cout << (int)ihdr.colorType << "!!!" << std::endl;
+
 	// NOTE: ADAM7 not supported
 	if (ihdr.interfaceMethod != 0)
 	{
