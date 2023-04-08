@@ -47,6 +47,8 @@ private:
 	void CreateWindow();
 	void SetCallbacks();
 
+	void HandleJoystick();
+
 	// Callbacks
 	void HandleKeyPressed(uint16_t key, uint16_t action);
 	void HandleResize(uint32_t width, uint32_t height);

@@ -101,6 +101,7 @@ void Window::Show()
 	glfwMakeContextCurrent((GLFWwindow*)this->window);
 	while (!glfwWindowShouldClose((GLFWwindow*)this->window))
 	{
+		HandleJoystick();
 		UpdateFramebuffer();
 
 		int w, h;
@@ -144,7 +145,7 @@ void Window::UpdateFramebuffer()
 				pixel = image->GetPixel(
 					(j / this->zoom) + this->locX,
 					(i / this->zoom) + this->locY
-				);				
+				);
 			}
 			else
 			{
@@ -190,36 +191,80 @@ void Window::SetCallbacks()
 	glfwSetWindowSizeCallback((GLFWwindow*)this->window, ResizeCallback);
 }
 
+void Window::HandleJoystick()
+{
+	// Check if jhoystick is present
+	int jpysticPressent = glfwJoystickPresent(GLFW_JOYSTICK_1);
+	if (!jpysticPressent)
+	{
+		return;
+	}
+
+	// Get Axes
+	int axesCount = 0;
+	const float* axes = glfwGetJoystickAxes(GLFW_JOYSTICK_1, &axesCount);
+
+	// Left Joystick
+	if (axesCount >= 2)
+	{
+		int lx = (int)(axes[0] * 5);
+		int ly = (int)(axes[1] * -5);
+
+		this->locX += lx;
+		this->locY += ly;
+	}
+
+	// Right Joystick
+	if (axesCount >= 4)
+	{
+		int rx = (int)(axes[2] * 5);
+		int ry = (int)(axes[3] * -5);
+
+		this->locX += rx;
+		this->locY += ry;
+	}
+
+	// Triggers (for zoom)
+	if (axesCount >= 6)
+	{
+		int zoomIn = (int)(axes[5] * 0.5 + 1);
+		int zoomOut = (int)(axes[4] * -0.5 -1);
+		this->zoom += zoomIn + zoomOut;
+	}
+
+	UpdateView();
+}
+
 void Window::HandleKeyPressed(uint16_t key, uint16_t action)
 {
 	switch (key)
 	{
-	// Left
+		// Left
 	case GLFW_KEY_LEFT:
 	case GLFW_KEY_A:
 		this->locX--;
 		break;
-	// Right
+		// Right
 	case GLFW_KEY_RIGHT:
 	case GLFW_KEY_D:
 		this->locX++;
 		break;
-	// Up
+		// Up
 	case GLFW_KEY_UP:
 	case GLFW_KEY_W:
 		this->locY++;
 		break;
-	// Down
+		// Down
 	case GLFW_KEY_DOWN:
 	case GLFW_KEY_S:
 		this->locY--;
 		break;
-	// Zoom out
+		// Zoom out
 	case GLFW_KEY_KP_SUBTRACT:
 	case GLFW_KEY_MINUS:
 		this->zoom = action == GLFW_RELEASE ? this->zoom - 1 : this->zoom;
 		break;
-	// Zoom in
+		// Zoom in
 	case GLFW_KEY_KP_ADD:
 	case GLFW_KEY_EQUAL:
 		this->zoom = action == GLFW_RELEASE ? this->zoom + 1 : this->zoom;
@@ -239,7 +284,7 @@ void Window::HandleResize(uint32_t width, uint32_t height)
 	// Update framebuffer size
 	this->framebuffer.Resize(this->width * this->height * 3);
 
-	UpdateView();	
+	UpdateView();
 }
 
 void Window::UpdateView()
