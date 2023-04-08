@@ -9,6 +9,7 @@
 #include <memory>
 #include <cstdint>
 
+#include <iostream>
 #ifdef ENABLE_LOGS
 #include <iostream>
 #include <iomanip>
@@ -187,12 +188,11 @@ void PngImage::ProcessHeader(std::unique_ptr<Chunk> &ihdrChunk)
 	// Check unsupported types
 	// NOTE: only RGB & RGBA supported
 	// TODO: implement other color types when needed
-	if (static_cast<ColorType>(ihdr.colorType) != ColorType::TrueColor &&
-		static_cast<ColorType>(ihdr.colorType) != ColorType::TrueColorAlpha)
+	if (static_cast<ColorType>(ihdr.colorType) == ColorType::Indexed)
 	{
 		throw RuntimeException("Unsupported color type: \"" + std::to_string(ihdr.colorType) + "\"");
 	}
-
+	std::cout << (int)ihdr.colorType << "!!!" << std::endl;
 	// NOTE: ADAM7 not supported
 	if (ihdr.interfaceMethod != 0)
 	{
@@ -259,11 +259,29 @@ void PngImage::ProcessData(BitStream& bitstream)
 		auto filterType = decodedBytes.at(loc++); // get filter method for current row
 		for (uint32_t x = 0; x < this->width; x++) // x
 		{
-			auto red   = decodedBytes.at(loc++);
-			auto green = decodedBytes.at(loc++);
-			auto blue  = decodedBytes.at(loc++);
+			uint8_t red   = 0;
+			uint8_t green = 0;
+			uint8_t blue  = 0;
 			uint8_t alpha = 255;
-			if (this->colorType == (uint8_t)ColorType::TrueColorAlpha)
+
+			if (this->colorType == (uint8_t)ColorType::TrueColorAlpha ||
+				this->colorType == (uint8_t)ColorType::TrueColor)
+			{
+				red = decodedBytes.at(loc++);
+				green = decodedBytes.at(loc++);
+				blue = decodedBytes.at(loc++);
+			}
+			else if (this->colorType == (uint8_t)ColorType::GrayScaleAlpha ||
+       				 this->colorType == (uint8_t)ColorType::GrayScale)
+			{
+				red   = decodedBytes.at(loc++);
+				green = red;
+				blue  = red;
+			}
+
+
+			if (this->colorType == (uint8_t)ColorType::TrueColorAlpha || 
+				this->colorType == (uint8_t)ColorType::GrayScaleAlpha)
 			{
 				alpha = decodedBytes.at(loc++);
 			}
