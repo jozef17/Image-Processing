@@ -10,6 +10,7 @@ set(SOURCES
    src/RAWImage.cpp
    src/Utils.cpp
    src/Window.cpp
+   src/jpg/JpegImage.cpp
    src/png/Adler32.cpp
    src/png/BitStream.cpp
    src/png/HuffmanDecoder.cpp
@@ -31,6 +32,7 @@ set(INCLUDES
    include/RAWImage.hpp
    include/Utils.hpp
    include/Window.hpp
+   include/jpg/JpegImage.hpp
    include/png/Adler32.hpp
    include/png/BitStream.hpp
    include/png/BlockDecoder.hpp
