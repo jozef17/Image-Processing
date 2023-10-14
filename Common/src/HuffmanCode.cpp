@@ -2,6 +2,11 @@
 
 #include <algorithm>
 
+#ifdef ENABLE_LOGS
+#include <iostream>
+#include <iomanip>
+#endif
+
 void HuffmanCode::AsignCodes(std::vector<HuffmanCode>& codes)
 {
 	uint8_t minLength = std::min_element(codes.begin(), codes.end())->length;
