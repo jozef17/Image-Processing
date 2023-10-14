@@ -3,9 +3,12 @@
 #ifndef JPEG_IMAGE_HPP__
 #define JPEG_IMAGE_HPP__
 
+#include <map>
+#include <vector>
 #include <string>
 
 #include "Image.hpp"
+#include "HuffmanCode.hpp"
 
 struct Segment;
 
@@ -49,6 +52,10 @@ private:
 	/// </summary>
 	/// <param name="segment">Segment data</param>
 	void ProcessDht(const Segment& segment);
+
+	/// Huffmann tables
+	std::map<uint8_t, std::vector<HuffmanCode>> dhtDCTables;
+	std::map<uint8_t, std::vector<HuffmanCode>> dhtACTables;
 
 };
 
