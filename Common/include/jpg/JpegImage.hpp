@@ -26,20 +26,20 @@ private:
 	/// Process application specific metadata
 	/// </summary>
 	/// <param name="segment">Segment data</param>
-	void ProcessAppn(const Segment& segment);
+	void ProcessApp0(const Segment& segment);
 
 	/// <summary>
-	/// Process Quantization table/s
+	/// Process Quantization tables
 	/// </summary>
 	/// <param name="segment">Segment data</param>
 	void ProcessDqt(const Segment& segment);
 
 	/// <summary>
-	/// Process metadata aka "start of frame"
+	/// Process image metadata aka "start of frame"
 	/// baseline and progresive dct
 	/// </summary>
 	/// <param name="segment">Segment data</param>
-	void ProcessSf(const Segment& segment);
+	void ProcessSof(const Segment& segment);
 
 	/// <summary>
 	/// Process start of scan
@@ -54,8 +54,9 @@ private:
 	void ProcessDht(const Segment& segment);
 
 	/// Huffmann tables
-	std::map<uint8_t, std::vector<HuffmanCode>> dhtDCTables;
-	std::map<uint8_t, std::vector<HuffmanCode>> dhtACTables;
+	std::map<uint8_t, std::vector<HuffmanCode>> huffmanTables;
+//	std::map<uint8_t, std::vector<HuffmanCode>> dhtDCTables;
+//	std::map<uint8_t, std::vector<HuffmanCode>> dhtACTables;
 
 };
 

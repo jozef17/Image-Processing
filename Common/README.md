@@ -1,6 +1,13 @@
 # Common
 Static library containing shared functionality
 
+## (WIP)JpegImage
+- jpeg image decoder
+- Referencess:
+- - [Anatomy of a JPEG](https://www.ccoderun.ca/programming/2017-01-31_jpeg/)
+  - [TODO](TODO) 
+- - TODO
+
 ## PngImage
 - PNG image decoder
 - Referencess:

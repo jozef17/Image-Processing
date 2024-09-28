@@ -6,8 +6,10 @@
 - All project support following input image formats:
     - RAW
     - Bitmap (.bmp)
+    - (WIP)Joint Photographic Experts Group (.jpg)
+        - **NOTE:** not the whole standard is supported, scroll down for list of un/supported features.
     - Portable Network Graphics (.png) 
-        - **NOTE:** not the whole standard is supported, scroll down for list of unsupported features.
+        - **NOTE:** not the whole standard is supported, scroll down for list of un/supported features.
 - Projects overview:
     - [Common library (shared functionality)](Common)
     - [DCT Image compression](Compression)
@@ -37,6 +39,11 @@ Static library containing shared functionality
 
 ![Demo](Common/media/Image.png)
 
+### [(WIP) JpegImage](Common)
+- jpeg image decoder
+- **Un/supported features:**
+    - TODO
+ 
 ### Pixel
 - Represents pixel
 - Enables conversion to:
@@ -48,11 +55,7 @@ Static library containing shared functionality
 
 ### [PngImage](Common)
 - PNG image decoder
-- Referencess:
-    - [PNG Specification](https://www.w3.org/TR/PNG/)
-    - [RFC 1950 "ZLIB Compressed Data Format Specification"](https://datatracker.ietf.org/doc/html/rfc1950)
-    - [RFC 1951 "DEFLATE Compressed Data Format Specification"](https://datatracker.ietf.org/doc/html/rfc1951)
-- **Unsupported features:**
+- **Un/supported features:**
     - Only RGB and RGBA pixel formats are supported
     - Interface method [ADAM7](https://en.wikipedia.org/wiki/Adam7_algorithm) is not supported
     - Only 8 bit channels are supported
@@ -103,4 +106,3 @@ Static library containing shared functionality
 - Uses strategy pattern to handle commandline arguments
 
 ![Demo](ImageViewer/media/ImageViewer.gif)
-
