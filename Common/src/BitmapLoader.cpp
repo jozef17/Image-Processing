@@ -1,4 +1,4 @@
-#include "BitmapImage.hpp"
+#include "BitmapLoader.hpp"
 #include "Pixel.hpp"
 #include "Exception.hpp"
 #include "Common.hpp"

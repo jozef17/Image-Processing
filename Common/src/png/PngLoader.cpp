@@ -1,4 +1,4 @@
-#include "png/PngImage.hpp"
+#include "png/PngLoader.hpp"
 #include "png/Inflate.hpp"
 #include "png/BitStream.hpp"
 
