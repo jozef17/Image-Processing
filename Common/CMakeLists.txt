@@ -5,6 +5,7 @@ set(SOURCES
    src/BitmapLoader.cpp
    src/CommandLineParser.cpp
    src/Image.cpp
+   src/ImageLoader.cpp   
    src/Pixel.cpp
    src/PrintMessageHandler.cpp
    src/RAWLoader.cpp
@@ -26,6 +27,7 @@ set(INCLUDES
    include/Common.hpp
    include/Exception.hpp
    include/Image.hpp
+   include/ImageLoader.hpp
    include/Pixel.hpp
    include/PrintMessageHandler.hpp
    include/RAWLoader.hpp

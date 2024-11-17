@@ -1,20 +1,24 @@
 #pragma once
 
-#ifndef RAW_IMAGE_HPP__
-#define RAW_IMAGE_HPP__
+#ifndef RAW_LOADER_HPP__
+#define RAW_LOADER_HPP__
 
 #include <string>
 
 #include "Image.hpp"
 
-class RAWImage : public Image
+class RAWLoader
 {
 public:
-	RAWImage(std::string filename, uint32_t width, uint32_t height);
+	RAWLoader(std::string filename, uint32_t width, uint32_t height);
 
+	std::unique_ptr<Image> LoadRawImage();
 private:
-	void LoadData(std::string filename);
+
+	std::string filename;
+	uint32_t width;
+	uint32_t height;
 
 };
 
-#endif /* RAW_IMAGE_HPP__ */
+#endif /* RAW_LOADER_HPP__ */

@@ -42,5 +42,10 @@ void Image::SetPixel(uint32_t x, uint32_t y, Pixel& p)
 		throw Exception(errorMessage.c_str());
 	}
 
+	if (this->startPosition == Image::StartPosition::BottomLeft)
+	{
+		y = this->height - y - 1;
+	}
+
 	this->image[y * this->width + x] = std::make_unique<Pixel>(p);
 }

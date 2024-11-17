@@ -1,6 +1,6 @@
 # Image Processing
 - CMake based projects related to Image Processing
-- Written in C++
+- Written in C++ (up to 17)
 - Parallelised using [std::thread](https://en.cppreference.com/w/cpp/thread/thread) and / or [Nvidia CUDA](https://developer.nvidia.com/cuda-zone)
 - Unit tests written for Google Test framework
 - All project support following input image formats:
@@ -17,7 +17,7 @@
 ## [Common](Common)
 Static library containing shared functionality
 
-### BitmapImage
+### BitmapLoader
 - Loads image data from bitmap (.bmp) file
 
 ### CommandLineParser
@@ -31,11 +31,10 @@ Static library containing shared functionality
 
 ### Image
 - Contains ability to get and set particular pixel
-- Contains image starting position information:
-    - first Pixel being top left or
-    - first Pixel being bottom left
 
-![Demo](Common/media/Image.png)
+### ImageLoader
+- Loads requested image
+- Checks content to determine which image format is used
 
 ### Pixel
 - Represents pixel
@@ -46,7 +45,7 @@ Static library containing shared functionality
 
 ![Demo](Common/media/Pixel.png)
 
-### [PngImage](Common)
+### [PngLoader](Common)
 - PNG image decoder
 - Referencess:
     - [PNG Specification](https://www.w3.org/TR/PNG/)
@@ -60,7 +59,7 @@ Static library containing shared functionality
 
 ![Demo](Common/media/Png.png)
 
-### RawImage
+### RawLoader
 - Loads image data from RAW image file
 
 ### Window
@@ -103,4 +102,3 @@ Static library containing shared functionality
 - Uses strategy pattern to handle commandline arguments
 
 ![Demo](ImageViewer/media/ImageViewer.gif)
-

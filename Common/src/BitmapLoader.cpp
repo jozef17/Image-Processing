@@ -1,4 +1,5 @@
 #include "BitmapLoader.hpp"
+#include "Image.hpp"
 #include "Pixel.hpp"
 #include "Exception.hpp"
 #include "Common.hpp"
@@ -7,32 +8,50 @@
 
 PACK(struct BITMAPFILEHEADER
 {
-    unsigned short  bfType;
-    unsigned int    bfSize;
-    unsigned short  bfReserved1;
-    unsigned short  bfReserved2;
-    unsigned int    bfOffBits;
+	unsigned short  bfType;
+	unsigned int    bfSize;
+	unsigned short  bfReserved1;
+	unsigned short  bfReserved2;
+	unsigned int    bfOffBits;
 });
 
 PACK(struct BITMAPINFOHEADER
 {
-    unsigned int    biSize;
-    int             biWidth;
-    int             biHeight;
-    unsigned short  biPlanes;
-    unsigned short  biBitCount;
-    unsigned int    biCompress;
-    unsigned int    biSizeImage;
-    int             biXPelsPerMeter;
-    int             biYPelsPerMeter;
-    unsigned int    biClrUsed;
-    unsigned int    biClrImportant;
+	unsigned int    biSize;
+	int             biWidth;
+	int             biHeight;
+	unsigned short  biPlanes;
+	unsigned short  biBitCount;
+	unsigned int    biCompress;
+	unsigned int    biSizeImage;
+	int             biXPelsPerMeter;
+	int             biYPelsPerMeter;
+	unsigned int    biClrUsed;
+	unsigned int    biClrImportant;
 });
 
-BitmapImage::BitmapImage(std::string filename)
-{
-	this->startPosition = Image::StartPosition::TopLeft;
+BitmapLoader::BitmapLoader(std::string filename) : filename(filename) {}
 
+bool BitmapLoader::IsBitmapImage(uint8_t* header, uint32_t size)
+{
+	if (size < 2)
+	{
+		throw RuntimeException("Not enough data to asses the file (bmp)");
+	}
+
+	// BM - Windows 3.1x, 95, NT, ...
+	// BA - OS / 2 y
+	if (header[0] == 'B' && (header[1] == 'M' || header[1] == 'A'))
+	{
+		return true;
+	}
+	// TBD: other os versions
+
+	return false;
+}
+
+std::unique_ptr<Image> BitmapLoader::LoadBitmapImage()
+{
 	// Check file
 	std::ifstream file(filename, std::ios::binary);
 	if (!file.is_open())
@@ -41,43 +60,37 @@ BitmapImage::BitmapImage(std::string filename)
 	}
 
 	// Read header
-	auto bmpHeader = (BITMAPFILEHEADER*)new unsigned char[sizeof(BITMAPFILEHEADER)];
-	auto bmpInfo   = (BITMAPINFOHEADER*)new unsigned char[sizeof(BITMAPINFOHEADER)]; // Info
+	BITMAPFILEHEADER bmpHeader;
+	BITMAPINFOHEADER bmpInfo; // Info
 
-	file.read((char*)bmpHeader, sizeof(BITMAPFILEHEADER));
-	file.read((char*)bmpInfo, sizeof(BITMAPINFOHEADER));
+	file.read((char*)&bmpHeader, sizeof(bmpHeader));
+	file.read((char*)&bmpInfo, sizeof(bmpInfo));
 
-	if (bmpHeader->bfType != 0x4D42)
+	if (bmpHeader.bfType != 0x4D42)
 	{
-		delete bmpHeader;
-		delete bmpInfo;
 		file.close();
-
 		throw RuntimeException("Not a bmp file (" + filename + ")!");
 	}
 
-	this->height = bmpInfo->biHeight;
-	this->width = bmpInfo->biWidth;
-
-	unsigned long offset = bmpHeader->bfOffBits;
-	unsigned long size = bmpInfo->biSizeImage;
-
-	delete bmpHeader;
-	delete bmpInfo;
+	std::unique_ptr<Image> img = std::make_unique<Image>(bmpInfo.biWidth, bmpInfo.biHeight, Image::StartPosition::BottomLeft);
+	unsigned long offset = bmpHeader.bfOffBits;
+	unsigned long size = bmpInfo.biSizeImage;
 
 	// Load data
 	file.seekg(offset); // go to start of data
 
-	this->image = std::unique_ptr<std::unique_ptr<Pixel>[]>(new std::unique_ptr<Pixel>[width * height]);
-	for (uint32_t i = 0; i < this->width * this->height; i++)
+	for (uint32_t y = 0; y < bmpInfo.biHeight; y++)
 	{
-		// read pixel
-		uint8_t data[3];
-		file.read((char*)&data, 3);
-		// bmp stores color data in inverted order
-		RGBPixel rgb{ data[2], data[1], data[0]};
-		this->image[i] = std::unique_ptr<Pixel>(new Pixel(rgb));
+		for (uint32_t x = 0; x < bmpInfo.biWidth; x++)
+		{
+			// read pixel
+			uint8_t data[3];
+			file.read((char*)&data, 3);
+			// bmp stores color data in inverted order
+			img->SetPixel(x, y, Pixel(RGBPixel{ data[2], data[1], data[0] }));
+		}
 	}
 
 	file.close();
+	return img;
 }

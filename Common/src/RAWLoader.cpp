@@ -1,19 +1,16 @@
-#include "RAWImage.hpp"
+#include "RAWLoader.hpp"
 #include "Pixel.hpp"
 #include "Exception.hpp"
 
 #include <fstream>
 
-RAWImage::RAWImage(std::string filename, uint32_t width, uint32_t height)
-{
-	this->width = width;
-	this->height = height;
+RAWLoader::RAWLoader(std::string filename, uint32_t width, uint32_t height)
+	: filename(filename), width(width), height(height) {}
 
-	LoadData(filename);
-}
-
-void RAWImage::LoadData(std::string filename)
+std::unique_ptr<Image> RAWLoader::LoadRawImage()
 {
+	std::unique_ptr<Image> img = std::make_unique<Image>(this->width, this->height);
+
 	// Check file
 	std::ifstream file(filename);
 	if (!file.is_open())
@@ -22,13 +19,16 @@ void RAWImage::LoadData(std::string filename)
 	}
 
 	// Read file
-	this->image = std::unique_ptr<std::unique_ptr<Pixel>[]>(new std::unique_ptr<Pixel>[width * height]);
-	for (uint32_t i = 0; i < this->width * this->height; i++)
+	for (uint32_t y = 0u; y < this->height; y++)
 	{
-		RGBPixel rgb;
-		file.read((char*)&rgb, 3);
-		this->image[i] = std::unique_ptr<Pixel>(new Pixel(rgb));
+		for (uint32_t x = 0u; x < this->width; x++)
+		{
+			RGBPixel rgb;
+			file.read((char*)&rgb, 3);
+			img->SetPixel(x,y, Pixel(rgb));
+		}
 	}
 
 	file.close();
+	return img;
 }
