@@ -1,7 +1,7 @@
 #include "png/PngLoader.hpp"
 #include "png/Inflate.hpp"
-#include "png/BitStream.hpp"
 
+#include "BitStream.hpp"
 #include "Pixel.hpp"
 #include "Image.hpp"
 #include "Exception.hpp"

@@ -3,6 +3,7 @@ cmake_minimum_required(VERSION 3.8)
 
 set(SOURCES
    src/BitmapLoader.cpp
+   src/BitStream.cpp
    src/CommandLineParser.cpp
    src/Image.cpp
    src/ImageLoader.cpp   
@@ -12,7 +13,6 @@ set(SOURCES
    src/Utils.cpp
    src/Window.cpp
    src/png/Adler32.cpp
-   src/png/BitStream.cpp
    src/png/HuffmanDecoder.cpp
    src/png/Inflate.cpp 
    src/png/PngLoader.cpp
@@ -23,6 +23,7 @@ set(SOURCES
 set(INCLUDES
    include/ArgumentHandler.hpp
    include/BitmapLoader.hpp
+   include/BitStream.hpp
    include/CommandLineParser.hpp
    include/Common.hpp
    include/Exception.hpp
@@ -34,7 +35,6 @@ set(INCLUDES
    include/Utils.hpp
    include/Window.hpp
    include/png/Adler32.hpp
-   include/png/BitStream.hpp
    include/png/BlockDecoder.hpp
    include/png/HuffmanDecoder.hpp
    include/png/Inflate.hpp 

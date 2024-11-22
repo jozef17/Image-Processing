@@ -1,4 +1,4 @@
-#include "png/BitStream.hpp"
+#include "BitStream.hpp"
 #include "Exception.hpp"
 
 bool BitStream::GetNext() 

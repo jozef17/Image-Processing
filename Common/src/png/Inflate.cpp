@@ -1,7 +1,7 @@
 #include "png/Inflate.hpp"
-#include "png/BitStream.hpp"
 #include "png/Type01Decoder.hpp"
 #include "png/Type10Decoder.hpp"
+#include "BitStream.hpp"
 #include "Exception.hpp"
 
 #ifdef ENABLE_LOGS
