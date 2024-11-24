@@ -5,6 +5,7 @@ set(SOURCES
    src/BitmapLoader.cpp
    src/BitStream.cpp
    src/CommandLineParser.cpp
+   src/GifLoader.cpp
    src/Image.cpp
    src/ImageLoader.cpp   
    src/Pixel.cpp
@@ -27,6 +28,7 @@ set(INCLUDES
    include/CommandLineParser.hpp
    include/Common.hpp
    include/Exception.hpp
+   include/GifLoader.hpp
    include/Image.hpp
    include/ImageLoader.hpp
    include/Pixel.hpp

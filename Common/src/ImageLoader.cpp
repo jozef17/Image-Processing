@@ -2,6 +2,7 @@
 #include "Image.hpp"
 #include "RAWLoader.hpp"
 #include "BitmapLoader.hpp"
+#include "GifLoader.hpp"
 #include "png/PngLoader.hpp"
 #include "Exception.hpp"
 
@@ -21,13 +22,19 @@ std::unique_ptr<Image> ImageLoader::LoadImage(const std::string& image)
 		file.read((char*)buffer, sizeof(buffer));
 	}
 
-	if (PngLoader::IsPngImage(buffer, 16))
+	if (PngLoader::IsPngImage(buffer, sizeof(buffer)))
 	{
 		PngLoader loader(image);
 		return loader.LoadPngImage();
 	}
 
-	if (BitmapLoader::IsBitmapImage(buffer, 16))
+	if (GifLoader::IsGifImage(buffer, sizeof(buffer)))
+	{
+		GifLoader loader(image);
+		return loader.LoadGifImage();
+	}
+
+	if (BitmapLoader::IsBitmapImage(buffer, sizeof(buffer)))
 	{
 		BitmapLoader loader(image);
 		return loader.LoadBitmapImage();

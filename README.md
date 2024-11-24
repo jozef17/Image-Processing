@@ -1,6 +1,6 @@
 # Image Processing
 - CMake based projects related to Image Processing
-- Written in C++ (up to 17)
+- Written in C++
 - Parallelised using [std::thread](https://en.cppreference.com/w/cpp/thread/thread) and / or [Nvidia CUDA](https://developer.nvidia.com/cuda-zone)
 - Unit tests written for Google Test framework
 - All project support following input image formats:
@@ -28,6 +28,12 @@ Static library containing shared functionality
 - Exception for differentiating between project exceptions and standard exceptions
 
 ![Demo](Common/media/Exception.png)
+
+### GifLoader (beta)
+- Loads (some) gif image
+- **Limmited support**
+- Referencess:
+    - [gif blog](https://www.matthewflickinger.com/lab/whatsinagif/index.html)
 
 ### Image
 - Contains ability to get and set particular pixel
