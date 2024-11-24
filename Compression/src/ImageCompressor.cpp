@@ -40,8 +40,8 @@ std::unique_ptr<FloatImage> ImageCompressor::Encode()
 	{
 		for (auto j = 0u; j < this->image.GetHeight(); j += 8)
 		{
-			int M = (compressed->GetWidth()  - i) > 8 ? 8 : compressed->GetWidth()  - i;
-			int N = (compressed->GetHeight() - j) > 8 ? 8 : compressed->GetHeight() - j;
+			unsigned int M = (compressed->GetWidth()  - i) > 8 ? 8 : compressed->GetWidth()  - i;
+			unsigned int N = (compressed->GetHeight() - j) > 8 ? 8 : compressed->GetHeight() - j;
 
 			// Process Block
 			for (auto x = 0u; x < M; x++)

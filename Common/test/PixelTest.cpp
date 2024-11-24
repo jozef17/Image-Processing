@@ -1,8 +1,6 @@
 #include <gtest/gtest.h>
 #include "Pixel.hpp"
 
-
-
 TEST(PixelTest, RGB2RGBA)
 {
 	Pixel pixel = RGBPixel{ 1, 128, 255 };	

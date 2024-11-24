@@ -3,11 +3,10 @@
 #include "FilterHandler.hpp"
 #include "MessageConst.hpp"
 #include "Kernel.hpp"
-#include "BitmapImage.hpp"
-#include "RAWImage.hpp"
 #include "Utils.hpp"
 #include "Exception.hpp"
-#include "png/PngImage.hpp"
+#include "Image.hpp"
+#include "ImageLoader.hpp"
 
 std::unique_ptr<ArgumentHandler> HandlerManager::GetHandler(const std::map<std::string, std::vector<std::string>>& options)
 {
@@ -56,25 +55,13 @@ std::unique_ptr<ArgumentHandler> HandlerManager::GetHandler(const std::map<std::
 		std::shared_ptr<Image> image;
 		if (parameters.size() == 1)
 		{
-			auto lowercaseFile = Utils::ToLowercase(parameters.at(0));
-			if (Utils::EndsWith(lowercaseFile, ".png"))
-			{
-				image = std::shared_ptr<Image>(new PngImage(parameters.at(0)));
-			}
-			else if (Utils::EndsWith(lowercaseFile, ".bmp"))
-			{
-				image = std::shared_ptr<Image>(new BitmapImage(parameters.at(0)));
-			}
-			else
-			{
-				throw RuntimeException("Unsupported Image format file: \"" + parameters.at(0) + "\"! Only png, bmp and raw images are supported!");
-			}
+			image = ImageLoader::LoadImage(parameters.at(0));
 		}
 		else if (parameters.size() == 3)
 		{
 			auto width = std::stoi(parameters.at(1));
 			auto height = std::stoi(parameters.at(2));
-			image = std::shared_ptr<Image>(new RAWImage(parameters.at(0), width, height));
+			image = ImageLoader::LoadRawImage(parameters.at(0), width, height);
 		}
 		
 		Filter filter = { image, std::move(kernel) };

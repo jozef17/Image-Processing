@@ -17,7 +17,7 @@
 ## [Common](Common)
 Static library containing shared functionality
 
-### BitmapImage
+### BitmapLoader
 - Loads image data from bitmap (.bmp) file
 
 ### CommandLineParser
@@ -29,13 +29,18 @@ Static library containing shared functionality
 
 ![Demo](Common/media/Exception.png)
 
+### GifLoader (beta)
+- Loads (some) gif image
+- **Limmited support**
+- Referencess:
+    - [gif blog](https://www.matthewflickinger.com/lab/whatsinagif/index.html)
+
 ### Image
 - Contains ability to get and set particular pixel
-- Contains image starting position information:
-    - first Pixel being top left or
-    - first Pixel being bottom left
 
-![Demo](Common/media/Image.png)
+### ImageLoader
+- Loads requested image
+- Checks content to determine which image format is used
 
 ### Pixel
 - Represents pixel
@@ -46,7 +51,7 @@ Static library containing shared functionality
 
 ![Demo](Common/media/Pixel.png)
 
-### [PngImage](Common)
+### [PngLoader](Common)
 - PNG image decoder
 - Referencess:
     - [PNG Specification](https://www.w3.org/TR/PNG/)
@@ -60,7 +65,7 @@ Static library containing shared functionality
 
 ![Demo](Common/media/Png.png)
 
-### RawImage
+### RawLoader
 - Loads image data from RAW image file
 
 ### Window
@@ -103,4 +108,3 @@ Static library containing shared functionality
 - Uses strategy pattern to handle commandline arguments
 
 ![Demo](ImageViewer/media/ImageViewer.gif)
-

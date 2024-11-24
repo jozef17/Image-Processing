@@ -1,5 +1,5 @@
 #include "png/HuffmanDecoder.hpp"
-#include "png/BitStream.hpp"
+#include "BitStream.hpp"
 #include "Exception.hpp"
 
 #ifdef ENABLE_LOGS

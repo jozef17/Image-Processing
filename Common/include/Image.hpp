@@ -21,8 +21,6 @@ public:
 	Pixel GetPixel(uint32_t x, uint32_t y) const;
 	void  SetPixel(uint32_t x, uint32_t y, Pixel &p);
 
-	inline StartPosition GetStartPosition() const noexcept { return this->startPosition; };
-
 protected:
 	Image() = default;
 
