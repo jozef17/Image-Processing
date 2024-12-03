@@ -5,7 +5,6 @@ set(SOURCES
    src/BitmapLoader.cpp
    src/BitStream.cpp
    src/CommandLineParser.cpp
-   src/GifLoader.cpp
    src/Image.cpp
    src/ImageLoader.cpp   
    src/Pixel.cpp
@@ -13,6 +12,7 @@ set(SOURCES
    src/RAWLoader.cpp
    src/Utils.cpp
    src/Window.cpp
+   src/gif/GifLoader.cpp
    src/png/Adler32.cpp
    src/png/HuffmanDecoder.cpp
    src/png/Inflate.cpp 
@@ -28,7 +28,6 @@ set(INCLUDES
    include/CommandLineParser.hpp
    include/Common.hpp
    include/Exception.hpp
-   include/GifLoader.hpp
    include/Image.hpp
    include/ImageLoader.hpp
    include/Pixel.hpp
@@ -36,6 +35,7 @@ set(INCLUDES
    include/RAWLoader.hpp
    include/Utils.hpp
    include/Window.hpp
+   include/gif/GifLoader.hpp
    include/png/Adler32.hpp
    include/png/BlockDecoder.hpp
    include/png/HuffmanDecoder.hpp
