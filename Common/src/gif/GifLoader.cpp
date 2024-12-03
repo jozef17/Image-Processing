@@ -1,15 +1,11 @@
-#include "GifLoader.hpp"
+#include "gif/GifLoader.hpp"
+#include "gif/LZW.hpp"
 #include "BitStream.hpp"
 #include "Image.hpp"
 #include "Exception.hpp"
 
 #include <fstream>
 #include <map>
-
-#ifdef ENABLE_LOGS
-#include <iostream>
-#include <iomanip>
-#endif
 
 GifLoader::GifLoader(const std::string& filename) : filename(filename) {}
 
@@ -75,30 +71,16 @@ std::unique_ptr<Image> GifLoader::LoadGifImage()
 		throw RuntimeException("Image Descriptor Missing!");
 	}
 
-	uint32_t width = ((int)imageDescriptor[6] << 8) | imageDescriptor[5];
-	uint32_t height = ((int)imageDescriptor[8] << 8) | imageDescriptor[7];
-#ifdef ENABLE_LOGS
-	std::cout << "Width:  " << (int)imageDescriptor[5] << " " <<
-		std::setw(2) << std::setfill('0') << std::hex << (int)imageDescriptor[6] << " = " << std::dec << width << std::endl;
-	std::cout << "Height: " << std::setw(2) << std::setfill('0') << std::hex << (int)imageDescriptor[7] << " " <<
-		std::setw(2) << std::setfill('0') << std::hex << (int)imageDescriptor[8] << " = " << std::dec << height << std::endl;
-	std::cout << "Flags: ";
-	for (int i = 7; i >= 0; i--)
-		std::cout << ((imageDescriptor[9] & (1 << i)) ? "1" : "0");
-	std::cout << std::endl;
-#endif
+	this->width = ((int)imageDescriptor[6] << 8) | imageDescriptor[5];
+	this->height = ((int)imageDescriptor[8] << 8) | imageDescriptor[7];
 
 	bool isLocalColorTablePresent = imageDescriptor[9] & 1 << 7;
 	if (this->isGlobalColorTablePresent && isLocalColorTablePresent)
 	{
 		throw RuntimeException("Only one color table supported!");
 	}
-	
-	if (isLocalColorTablePresent)
+	else if (isLocalColorTablePresent)
 	{
-#ifdef ENABLE_LOGS
-		std::cout << "Using local colot table!!!" << std::endl;
-#endif
 		LoadColorTable(file, imageDescriptor[9]);
 	}
 
@@ -124,40 +106,13 @@ std::unique_ptr<Image> GifLoader::LoadGifImage()
 
 		data = std::unique_ptr<uint8_t[]>(new uint8_t[imageDatasize]);
 		file.read((char*)data.get(), imageDatasize);
-#ifdef ENABLE_LOGS
-		std::cout << "Image data size:  " << std::dec << (int)imageDatasize << std::endl;
-		for (int i = 0; i < imageDatasize; i++)
-			std::cout << std::setw(2) << std::setfill('0') << std::hex << (int)data[i] << " ";
-		std::cout << std::endl;
-#endif
 		stream.Append(std::move(data), imageDatasize);
 	}
 
 	// Decode data
-	std::vector<uint8_t> imageColorIndexes = LZWDecode(stream, lzwMinCodeSize);
-#ifdef ENABLE_LOGS
-	std::cout << "Size: " << imageColorIndexes.size() << ": ";
-	for (auto x : imageColorIndexes)
-		std::cout << std::dec << (int)x << " ";
-#endif
-	if (imageColorIndexes.size() != width * height)
-	{
-		throw Exception("LZW decoding failed!");
-	}
-
-	// Build image
-	std::unique_ptr<Image> image = std::make_unique<Image>(width, height);
-	uint32_t byteCounter = 0;
-	for (uint32_t y = 0; y < height; y++)
-	{
-		for (uint32_t x = 0; x < width; x++)
-		{
-			auto index = imageColorIndexes[byteCounter++];
-			auto color = this->colorTable[index];
-			image->SetPixel(x, y, Pixel(color));
-		}
-	}
-	return image;
+	LZW lzw(stream, lzwMinCodeSize, (uint16_t)this->colorTable.size());
+	auto imageColorIndexes = lzw.Decode();
+	return ProcessImageData(imageColorIndexes);
 }
 
 void GifLoader::LoadColorTable(std::ifstream& file, uint8_t flags)
@@ -172,126 +127,32 @@ void GifLoader::LoadColorTable(std::ifstream& file, uint8_t flags)
 	int n = flags & 0b00000111;
 	auto colorCount = 1 << (n + 1);
 
-#ifdef ENABLE_LOGS
-	std::cout << " (" << std::dec << n << ") colorCount: " << colorCount << std::endl;
-#endif
 	RGBPixel pixel;
 	for (int i = 0; i < colorCount; i++)
 	{
 		file.read((char*)&pixel, 3);
 		this->colorTable[i] = pixel;
-#ifdef ENABLE_LOGS
-		std::cout << std::dec << "Color " << i << ": " << std::setw(2) << std::setfill('0') << std::hex << i << " " << (int)pixel.red << " " << (int)pixel.green << " " << (int)pixel.blue << std::endl;
-#endif
 	}
 }
 
-std::vector<uint8_t> GifLoader::LZWDecode(BitStream& stream, uint8_t lzwMinCodeSize)
+std::unique_ptr<Image> GifLoader::ProcessImageData(std::vector<uint8_t> imageColorIndexes)
 {
-	std::map<uint32_t, std::vector<uint32_t>> decodeTable;
-	std::vector<uint8_t> imageColorIndexes;
-	uint32_t nextCodeIndex = 0;
-	uint32_t codeSize = lzwMinCodeSize;
-	uint32_t maxCode = (1 << (codeSize + 1));
-
-	// Decode
-#ifdef ENABLE_LOGS
-	std::cout << "Decoding:" << std::endl;
-#endif
-	uint32_t prewCode = (uint32_t)-1;
-	while (true)
+	if (imageColorIndexes.size() != width * height)
 	{
-		uint32_t code = 0;
-		for (uint32_t i = 0; i <= codeSize; i++)
-		{
-			uint32_t bit = stream.GetNext() ? 1 : 0;
-			code = code | (bit << i);
-		}
+		throw Exception("LZW decoding failed!");
+	}
 
-		// End of data!
-		if (code == (this->colorTable.size() + 1))
+	// Build image
+	std::unique_ptr<Image> image = std::make_unique<Image>(width, height);
+	uint32_t byteCounter = 0;
+	for (uint32_t y = 0; y < this->height; y++)
+	{
+		for (uint32_t x = 0; x < this->width; x++)
 		{
-			break;
+			auto index = imageColorIndexes[byteCounter++];
+			auto color = this->colorTable[index];
+			image->SetPixel(x, y, Pixel(color));
 		}
-
-		// Clear / reset
-		if (code == (this->colorTable.size()))
-		{
-#ifdef ENABLE_LOGS
-			std::cout << "Reset code" << std::endl;
-#endif
-			decodeTable.clear();
-
-			// Generate Decode table
-			for (uint32_t i = 0; i < this->colorTable.size(); i++)
-			{
-				decodeTable[i] = { i }; // Clear / Reset code
-			}
-			nextCodeIndex = (uint32_t)this->colorTable.size() + 2;
-			prewCode = (uint32_t)-1;
-			codeSize = lzwMinCodeSize;
-			maxCode = (1 << (codeSize + 1));
-
-			continue;
-		}
-
-		// Output first color after clear
-		if (prewCode == (uint32_t)-1)
-		{
-			imageColorIndexes.push_back(code);
-			prewCode = code;
-			continue;
-		}
-#ifdef ENABLE_LOGS
-		std::cout << std::setw(4) << std::setfill('0') << std::hex << code << " ";
-		std::cout << std::dec << code << " | ";
-#endif
-		if (decodeTable.find(code) != decodeTable.end())
-		{
-			// Code in table
-			std::vector<uint32_t> pattern = decodeTable[code];
-			imageColorIndexes.insert(imageColorIndexes.end(), pattern.begin(), pattern.end());
-
-			// Add code to table
-			auto first = pattern.at(0); // K
-			std::vector<uint32_t> newPattern = decodeTable[prewCode];
-			newPattern.push_back(first);
-			decodeTable[nextCodeIndex++] = newPattern;
-#ifdef ENABLE_LOGS
-			std::cout << "Old code | addoing code " << (nextCodeIndex - 1) << " |";
-			std::cout << "first(K) " << first << " (";
-			for (auto x : newPattern)
-				std::cout << (int)x << " ";
-			std::cout << ")" << std::endl;
-#endif
-		}
-		else if(code != nextCodeIndex)
-		{
-			throw("Invaid code " + std::to_string(code) + " (" + std::to_string(nextCodeIndex) + ")!!!");
-		}
-		else
-		{
-			// Code not in table;
-			auto firstPrew = decodeTable[prewCode].at(0); // K
-			std::vector<uint32_t> newPattern = decodeTable[prewCode];
-			newPattern.push_back(firstPrew);
-			decodeTable[nextCodeIndex++] = newPattern;
-#ifdef ENABLE_LOGS
-			std::cout << "New code | addoing code " << (nextCodeIndex - 1) << " |";;
-			std::cout << "firstPrew (K) " << firstPrew << " (";
-			for (auto x : newPattern)
-				std::cout << (int)x << " ";
-			std::cout << ")" << std::endl;
-#endif
-			imageColorIndexes.insert(imageColorIndexes.end(), newPattern.begin(), newPattern.end());
-		} // new / old code
-		prewCode = code;
-
-		if (nextCodeIndex == maxCode)
-		{
-			codeSize++;
-			maxCode = (1 << (codeSize + 1));
-		}
-	} // loop
-	return imageColorIndexes;
+	}
+	return image;
 }

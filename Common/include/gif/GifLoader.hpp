@@ -23,9 +23,11 @@ public:
 
 private:
 	void LoadColorTable(std::ifstream &ifs, uint8_t flags);
-	std::vector<uint8_t> LZWDecode(BitStream& stream, uint8_t lzwMinCodeSize);
+	std::unique_ptr<Image> ProcessImageData(std::vector<uint8_t> imageColorIndexes);
 
 	std::string filename;
+	uint32_t width;
+	uint32_t height;
 
 	bool isGlobalColorTablePresent = false;
 	std::map<uint8_t, RGBPixel> colorTable;

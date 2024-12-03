@@ -13,6 +13,7 @@ set(SOURCES
    src/Utils.cpp
    src/Window.cpp
    src/gif/GifLoader.cpp
+   src/gif/LZW.cpp
    src/png/Adler32.cpp
    src/png/HuffmanDecoder.cpp
    src/png/Inflate.cpp 
@@ -36,6 +37,7 @@ set(INCLUDES
    include/Utils.hpp
    include/Window.hpp
    include/gif/GifLoader.hpp
+   include/gif/LZW.hpp
    include/png/Adler32.hpp
    include/png/BlockDecoder.hpp
    include/png/HuffmanDecoder.hpp

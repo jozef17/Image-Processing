@@ -2,7 +2,7 @@
 #include "Image.hpp"
 #include "RAWLoader.hpp"
 #include "BitmapLoader.hpp"
-#include "GifLoader.hpp"
+#include "gif/GifLoader.hpp"
 #include "png/PngLoader.hpp"
 #include "Exception.hpp"
 

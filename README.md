@@ -6,6 +6,8 @@
 - All project support following input image formats:
     - RAW
     - Bitmap (.bmp)
+    - Graphics Interchange Format (.gif)
+        - **NOTE:** only limited support
     - Portable Network Graphics (.png) 
         - **NOTE:** not the whole standard is supported, scroll down for list of unsupported features.
 - Projects overview:
@@ -20,6 +22,10 @@ Static library containing shared functionality
 ### BitmapLoader
 - Loads image data from bitmap (.bmp) file
 
+### BitStream
+- Simplifies access to bits from byte arrays
+- Handles moving in stream
+
 ### CommandLineParser
 - Parses command line arguments
 - Creates key-value pairs of command line option and its argument list
@@ -29,9 +35,10 @@ Static library containing shared functionality
 
 ![Demo](Common/media/Exception.png)
 
-### GifLoader (beta)
-- Loads (some) gif image
+### GifLoader
+- Loads gif image
 - **Limmited support**
+    - Animation is not supported
 - Referencess:
     - [gif blog](https://www.matthewflickinger.com/lab/whatsinagif/index.html)
 
