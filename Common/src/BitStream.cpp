@@ -1,8 +1,18 @@
 #include "BitStream.hpp"
 #include "Exception.hpp"
 
-bool BitStream::GetNext() 
-{ 
+#ifdef ENABLE_LOGS
+#include <sstream>
+#include <iomanip>
+#endif
+
+bool BitStream::GetNext()
+{
+	if (this->arrayPosition >= this->data.size())
+	{
+		throw RuntimeException("Error: End of stream");
+	}
+
 	auto byte = this->data[this->arrayPosition][this->bytePosition];
 	auto bit = byte & 1 << this->bitPosition++;
 
@@ -67,3 +77,23 @@ void BitStream::Append(std::unique_ptr<uint8_t[]> data, uint32_t size)
 	this->data.push_back(std::move(data));
 	this->lengths.push_back(size);
 }
+
+#ifdef ENABLE_LOGS
+std::string BitStream::LogCurrent()
+{
+	std::stringstream s;
+	auto byte = this->data[this->arrayPosition][this->bytePosition];
+
+	s << "Array pos #" << (int)this->arrayPosition << "/" << this->data.size() << "\n";
+	s << "Byte pos  #" << (int)this->bytePosition << "/" << this->lengths[this->arrayPosition] << "\n";
+	s << "Bite pos  #" << (int)this->bitPosition << "/8\n";
+	s << "\t" << std::setfill('0') << std::hex << (int)byte << " ";
+	for (uint8_t i = 0; i < 8; i++)
+	{
+		s << ((byte & 1 << i) ? "1" : "0");
+	}
+	s << "\n";
+
+	return s.str();
+}
+#endif
