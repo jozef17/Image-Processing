@@ -1,7 +1,7 @@
 #include "png/Type10Decoder.hpp"
-#include "png/BitStream.hpp"
 #include "png/Adler32.hpp"
 #include "Exception.hpp"
+#include "BitStream.hpp"
 
 #include <algorithm>
 

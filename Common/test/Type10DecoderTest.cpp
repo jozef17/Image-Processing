@@ -2,7 +2,7 @@
 #include <memory>
 
 #include "png/Type10Decoder.hpp"
-#include "png/BitStream.hpp"
+#include "BitStream.hpp"
 
 // NOTE: Test created by getting bit stream from png image and manually decoded
 TEST(Type10DecoderTest, Decode1)

@@ -1,8 +1,9 @@
-#include "png/PngImage.hpp"
+#include "png/PngLoader.hpp"
 #include "png/Inflate.hpp"
-#include "png/BitStream.hpp"
 
+#include "BitStream.hpp"
 #include "Pixel.hpp"
+#include "Image.hpp"
 #include "Exception.hpp"
 #include "Common.hpp"
 
@@ -52,12 +53,27 @@ enum class ColorType : uint8_t
 	TrueColorAlpha	= 0b110 // RGBA
 };
 
-PngImage::PngImage(const std::string& filename)
-{
-	this->startPosition = Image::StartPosition::BottomLeft;
+PngLoader::PngLoader(const std::string& filename) : filename(filename) {}
 
+bool PngLoader::IsPngImage(uint8_t* header, uint32_t size)
+{
+	if (size < 8)
+	{
+		throw RuntimeException("Not enough data to asses the file (png)");
+	}
+
+	uint8_t reference[8] = { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A };
+	if (std::memcmp(header, reference, 8) == 0)
+	{
+		return true;
+	}
+	return false;
+}
+
+std::unique_ptr<Image> PngLoader::LoadPngImage()
+{
 	// Check file
-	std::ifstream file(filename, std::ios::binary);
+	std::ifstream file(this->filename, std::ios::binary);
 	if (!file.is_open())
 	{
 		throw RuntimeException("Unable to open file: \"" + filename + "\"");
@@ -72,6 +88,7 @@ PngImage::PngImage(const std::string& filename)
 		throw RuntimeException("Not a png file (" + filename + ")!");
 	}
 
+	// Load png chunks
 	BitStream bitstream;
 	while (file)
 	{
@@ -95,10 +112,10 @@ PngImage::PngImage(const std::string& filename)
 	}
 	file.close();
 
-	ProcessData(bitstream);
+	return ProcessData(bitstream);
 }
 
-std::unique_ptr<Chunk> PngImage::LoadChnuk(std::ifstream& file)
+std::unique_ptr<Chunk> PngLoader::LoadChnuk(std::ifstream& file)
 {
 	std::unique_ptr<Chunk> chunk = std::make_unique<Chunk>();
 
@@ -152,7 +169,7 @@ std::unique_ptr<Chunk> PngImage::LoadChnuk(std::ifstream& file)
 	return std::move(chunk);
 }
 
-void PngImage::ProcessHeader(std::unique_ptr<Chunk> &ihdrChunk)
+void PngLoader::ProcessHeader(std::unique_ptr<Chunk> &ihdrChunk)
 {
 	IHDR ihdr = { 0 };
 	std::memcpy(&ihdr, ihdrChunk->data.get(), sizeof(IHDR));
@@ -187,8 +204,7 @@ void PngImage::ProcessHeader(std::unique_ptr<Chunk> &ihdrChunk)
 	// Check unsupported types
 	// NOTE: only RGB & RGBA supported
 	// TODO: implement other color types when needed
-	if (static_cast<ColorType>(ihdr.colorType) != ColorType::TrueColor &&
-		static_cast<ColorType>(ihdr.colorType) != ColorType::TrueColorAlpha)
+	if (static_cast<ColorType>(ihdr.colorType) == ColorType::Indexed)
 	{
 		throw RuntimeException("Unsupported color type: \"" + std::to_string(ihdr.colorType) + "\"");
 	}
@@ -222,11 +238,26 @@ void PngImage::ProcessHeader(std::unique_ptr<Chunk> &ihdrChunk)
 	this->colorType = ihdr.colorType;
 }
 
-void PngImage::ProcessData(BitStream& bitstream)
+std::unique_ptr<Image> PngLoader::ProcessData(BitStream& bitstream)
 {
 	Inflate decoder(bitstream);
 	auto decodedBytes  = decoder.Decode();
-	auto bytesPerPixel = static_cast<ColorType>(this->colorType) == ColorType::TrueColor ? 3 : 4;
+	auto bytesPerPixel = 0;
+	switch (static_cast<ColorType>(this->colorType))
+	{
+	case ColorType::TrueColor:
+		bytesPerPixel = 3;
+		break;	
+	case ColorType::TrueColorAlpha:
+		bytesPerPixel = 4;
+		break;
+	case ColorType::GrayScale:
+		bytesPerPixel = 1;
+		break;
+	case ColorType::GrayScaleAlpha:
+		bytesPerPixel = 2;
+		break;
+	}
 
 #ifdef ENABLE_LOGS
 	std::cout << "[PngImage::ProcessData] Decoded Data:" << std::endl;
@@ -241,7 +272,7 @@ void PngImage::ProcessData(BitStream& bitstream)
 	std::cout << std::endl;
 #endif
 
-	this->image = std::unique_ptr<std::unique_ptr<Pixel>[]>(new std::unique_ptr<Pixel>[this->width * this->height]);
+	std::unique_ptr<Image> image = std::make_unique<Image>(this->width, this->height);
 
 	auto start = 0;
 	while (decodedBytes.size() < this->width * this->height * bytesPerPixel + this->height)
@@ -259,11 +290,31 @@ void PngImage::ProcessData(BitStream& bitstream)
 		auto filterType = decodedBytes.at(loc++); // get filter method for current row
 		for (uint32_t x = 0; x < this->width; x++) // x
 		{
-			auto red   = decodedBytes.at(loc++);
-			auto green = decodedBytes.at(loc++);
-			auto blue  = decodedBytes.at(loc++);
+			uint8_t red   = 0;
+			uint8_t green = 0;
+			uint8_t blue  = 0;
 			uint8_t alpha = 255;
-			if (this->colorType == (uint8_t)ColorType::TrueColorAlpha)
+
+			// RGB & RGBA
+			if (this->colorType == (uint8_t)ColorType::TrueColorAlpha ||
+				this->colorType == (uint8_t)ColorType::TrueColor)
+			{
+				red = decodedBytes.at(loc++);
+				green = decodedBytes.at(loc++);
+				blue = decodedBytes.at(loc++);
+			}
+			// Gray Scale
+			else if (this->colorType == (uint8_t)ColorType::GrayScaleAlpha ||
+       				 this->colorType == (uint8_t)ColorType::GrayScale)
+			{
+				red   = decodedBytes.at(loc++);
+				green = red;
+				blue  = red;
+			}
+
+			// Alpha channel
+			if (this->colorType == (uint8_t)ColorType::TrueColorAlpha || 
+				this->colorType == (uint8_t)ColorType::GrayScaleAlpha)
 			{
 				alpha = decodedBytes.at(loc++);
 			}
@@ -280,7 +331,7 @@ void PngImage::ProcessData(BitStream& bitstream)
 				RGBAPixel leftPixel = { 0,0,0,0 };
 				if (x > 0)
 				{
-					leftPixel = GetPixel(x - 1, y).ToRGBA();
+					leftPixel = image->GetPixel(x - 1, y).ToRGBA();
 				}
 
 				red   += leftPixel.red;
@@ -296,7 +347,7 @@ void PngImage::ProcessData(BitStream& bitstream)
 				RGBAPixel abovePixel = { 0,0,0,0 }; // b
 				if (y > 0)
 				{
-					abovePixel = GetPixel(x, y - 1).ToRGBA();
+					abovePixel = image->GetPixel(x, y - 1).ToRGBA();
 				}
 
 				red   += abovePixel.red;
@@ -313,12 +364,12 @@ void PngImage::ProcessData(BitStream& bitstream)
 				RGBAPixel abovePixel = { 0,0,0,0 }; // b
 				if (x > 0)
 				{
-					leftPixel = GetPixel(x - 1, y).ToRGBA();
+					leftPixel = image->GetPixel(x - 1, y).ToRGBA();
 				}
 
 				if (y > 0)
 				{
-					abovePixel = GetPixel(x, y - 1).ToRGBA();
+					abovePixel = image->GetPixel(x, y - 1).ToRGBA();
 				}
 
 				red   += static_cast<uint8_t>(std::floor((abovePixel.red   + leftPixel.red)   / 2));
@@ -336,20 +387,20 @@ void PngImage::ProcessData(BitStream& bitstream)
 				RGBAPixel diagonalPixel = { 0,0,0,0 }; // c
 				if (x > 0)
 				{
-					leftPixel = GetPixel(x - 1, y).ToRGBA();
+					leftPixel = image->GetPixel(x - 1, y).ToRGBA();
 					if (y > 0)
 					{
-						diagonalPixel = GetPixel(x - 1, y - 1).ToRGBA();
+						diagonalPixel = image->GetPixel(x - 1, y - 1).ToRGBA();
 					}
 				}
 				if (y > 0)
 				{
-					abovePixel = GetPixel(x, y - 1).ToRGBA();
+					abovePixel = image->GetPixel(x, y - 1).ToRGBA();
 				}
 				
-				red += Paeth(leftPixel.red, abovePixel.red, diagonalPixel.red);
+				red   += Paeth(leftPixel.red, abovePixel.red, diagonalPixel.red);
 				green += Paeth(leftPixel.green, abovePixel.green, diagonalPixel.green);
-				blue += Paeth(leftPixel.blue, abovePixel.blue, diagonalPixel.blue);
+				blue  += Paeth(leftPixel.blue, abovePixel.blue, diagonalPixel.blue);
 				alpha += Paeth(leftPixel.alpha, abovePixel.alpha, diagonalPixel.alpha);
 
 				break;
@@ -365,15 +416,16 @@ void PngImage::ProcessData(BitStream& bitstream)
 				<< ", ";
 #endif
 			RGBAPixel rgba{ red, green, blue, alpha };
-			SetPixel(x, y, Pixel(rgba));
+			image->SetPixel(x, y, Pixel(rgba));
 		}
 #ifdef ENABLE_LOGS
 		std::cout << std::endl;
 #endif
 	}
+	return image;
 }
 
-uint8_t PngImage::Paeth(uint8_t a, uint8_t b, uint8_t c) const noexcept
+uint8_t PngLoader::Paeth(uint8_t a, uint8_t b, uint8_t c) const noexcept
 {
 	auto p  = a + b - c;
 	auto pa = std::abs(p - a);

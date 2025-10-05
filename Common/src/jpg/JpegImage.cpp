@@ -358,5 +358,4 @@ void JpegImage::ProcessDht(const Segment& segment)
 	{
 		this->dhtACTables[htNumber] = codes;
 	}*/
-	}
 }

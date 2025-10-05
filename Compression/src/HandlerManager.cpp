@@ -2,11 +2,10 @@
 #include "PrintMessageHandler.hpp"
 #include "CompressionHandler.hpp"
 #include "MessageConst.hpp"
-#include "png/PngImage.hpp"
-#include "BitmapImage.hpp"
-#include "RAWImage.hpp"
 #include "Utils.hpp"
 #include "Exception.hpp"
+#include "Image.hpp"
+#include "ImageLoader.hpp"
 
 std::unique_ptr<ArgumentHandler> HandlerManager::GetHandler(const std::map<std::string, std::vector<std::string>>& options)
 {
@@ -36,7 +35,7 @@ std::unique_ptr<ArgumentHandler> HandlerManager::GetHandler(const std::map<std::
 	return std::unique_ptr<ArgumentHandler>(new PrintMessageHandler(INVALID_INPUT_MESSAGE));
 }
 
-float HandlerManager::GetQuality(const std::vector<std::string> &arg)
+float HandlerManager::GetQuality(const std::vector<std::string>& arg)
 {
 	if (!Utils::IsNumber(arg.at(0)))
 	{
@@ -51,27 +50,17 @@ float HandlerManager::GetQuality(const std::vector<std::string> &arg)
 	return quality;
 }
 
-std::unique_ptr<Image> HandlerManager::GetImage(const std::vector<std::string> &arg)
+std::unique_ptr<Image> HandlerManager::GetImage(const std::vector<std::string>& arg)
 {
 	if (arg.size() == 1)
 	{
-		auto lowercaseFile = Utils::ToLowercase(arg.at(0));
-		if (Utils::EndsWith(lowercaseFile, ".png"))
-		{
-			return std::unique_ptr<Image>(new PngImage(arg.at(0)));
-		}
-		else if (Utils::EndsWith(lowercaseFile, ".bmp"))
-		{
-			return std::unique_ptr<Image>(new BitmapImage(arg.at(0)));
-		}
-
-		throw RuntimeException("Unsupported Image format file: \"" + arg.at(0) + "\"! Only png, bmp and raw images are supported!");		
+		return ImageLoader::LoadImage(arg.at(0));
 	}
 	else if (arg.size() == 3)
 	{
 		auto width = std::stoi(arg.at(1));
 		auto height = std::stoi(arg.at(2));
-		return std::unique_ptr<Image>(new RAWImage(arg.at(0), width, height));
+		return ImageLoader::LoadRawImage(arg.at(0), width, height);
 	}
 
 	throw RuntimeException("Invalid number of arguments!");

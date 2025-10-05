@@ -96,7 +96,6 @@ void Window::Show()
 	CreateWindow();
 	SetCallbacks();
 
-
 	// Displaying framebuffer
 	glfwMakeContextCurrent((GLFWwindow*)this->window);
 	while (!glfwWindowShouldClose((GLFWwindow*)this->window))
@@ -139,21 +138,10 @@ void Window::UpdateFramebuffer()
 	{
 		for (uint32_t j = 0; j < this->width; j++) // x
 		{
-			Pixel pixel;
-			if (image->GetStartPosition() == Image::StartPosition::TopLeft)
-			{
-				pixel = image->GetPixel(
-					(j / this->zoom) + this->locX,
-					(i / this->zoom) + this->locY
-				);
-			}
-			else
-			{
-				pixel = image->GetPixel(
-					(j / this->zoom) + this->locX,
-					(image->GetHeight() - 1) - (i / this->zoom) - this->locY
-				);
-			}
+			Pixel pixel = image->GetPixel(
+				(j / this->zoom) + this->locX,
+				(image->GetHeight() - 1) - (i / this->zoom) - this->locY
+			);
 
 			auto rgb = pixel.ToRGB();
 			std::memcpy(&framebuffer[index], &rgb, 3);

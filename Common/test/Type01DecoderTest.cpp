@@ -2,7 +2,7 @@
 #include <memory>
 
 #include "png/Type01Decoder.hpp"
-#include "png/BitStream.hpp"
+#include "BitStream.hpp"
 
 TEST(Type01DecoderTest, Literals0to143)
 {

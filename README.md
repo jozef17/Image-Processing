@@ -6,6 +6,8 @@
 - All project support following input image formats:
     - RAW
     - Bitmap (.bmp)
+    - Graphics Interchange Format (.gif)
+        - **NOTE:** only limited support
     - (WIP)Joint Photographic Experts Group (.jpg)
         - **NOTE:** not the whole standard is supported, scroll down for list of un/supported features.
     - Portable Network Graphics (.png) 
@@ -19,8 +21,12 @@
 ## [Common](Common)
 Static library containing shared functionality
 
-### BitmapImage
+### BitmapLoader
 - Loads image data from bitmap (.bmp) file
+
+### BitStream
+- Simplifies access to bits from byte arrays
+- Handles moving in stream
 
 ### CommandLineParser
 - Parses command line arguments
@@ -31,13 +37,19 @@ Static library containing shared functionality
 
 ![Demo](Common/media/Exception.png)
 
+### GifLoader
+- Loads gif image
+- **Limmited support**
+    - Animation is not supported
+- Referencess:
+    - [gif blog](https://www.matthewflickinger.com/lab/whatsinagif/index.html)
+
 ### Image
 - Contains ability to get and set particular pixel
-- Contains image starting position information:
-    - first Pixel being top left or
-    - first Pixel being bottom left
 
-![Demo](Common/media/Image.png)
+### ImageLoader
+- Loads requested image
+- Checks content to determine which image format is used
 
 ### [(WIP) JpegImage](Common)
 - jpeg image decoder
@@ -53,17 +65,21 @@ Static library containing shared functionality
 
 ![Demo](Common/media/Pixel.png)
 
-### [PngImage](Common)
+### [PngLoader](Common)
 - PNG image decoder
-- **Un/supported features:**
-    - Only RGB and RGBA pixel formats are supported
+- Referencess:
+    - [PNG Specification](https://www.w3.org/TR/PNG/)
+    - [RFC 1950 "ZLIB Compressed Data Format Specification"](https://datatracker.ietf.org/doc/html/rfc1950)
+    - [RFC 1951 "DEFLATE Compressed Data Format Specification"](https://datatracker.ietf.org/doc/html/rfc1951)
+- **Unsupported features:**
+    - Indexed color is not supported.
     - Interface method [ADAM7](https://en.wikipedia.org/wiki/Adam7_algorithm) is not supported
     - Only 8 bit channels are supported
     - Zlib/Inflate block type 00 is not supported (uncompressed block)
 
 ![Demo](Common/media/Png.png)
 
-### RawImage
+### RawLoader
 - Loads image data from RAW image file
 
 ### Window

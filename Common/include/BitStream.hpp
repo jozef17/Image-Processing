@@ -7,6 +7,10 @@
 #include <memory>
 #include <cstdint>
 
+#ifdef ENABLE_LOGS
+#include <string>
+#endif
+
 class BitStream
 {
 public:
@@ -38,10 +42,13 @@ public:
 	/// <param name="size">Length of the data in bytes</param>
 	void Append(std::unique_ptr<uint8_t[]> data, uint32_t length);
 
+#ifdef ENABLE_LOGS
+	std::string LogCurrent();
+#endif
 private:
 	uint32_t bytePosition  = 0;
-	uint8_t  bitPosition   = 0;
-	uint8_t  arrayPosition = 0;
+	uint32_t bitPosition   = 0;
+	uint32_t arrayPosition = 0;
 
 	std::vector<std::unique_ptr<uint8_t[]>> data;
 	std::vector<uint32_t> lengths;

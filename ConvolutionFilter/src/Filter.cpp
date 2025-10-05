@@ -29,7 +29,7 @@ Filter::~Filter()
 std::shared_ptr<Image> Filter::ApplyFilter()
 {
 	std::shared_ptr<Image> result = std::shared_ptr<Image>(
-		new Image(this->image->GetWidth(), this->image->GetHeight(), this->image->GetStartPosition())
+		new Image(this->image->GetWidth(), this->image->GetHeight())
 	);
 
 	const int threadCount = 8;
