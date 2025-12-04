@@ -14,12 +14,30 @@ bool BitStream::GetNext()
 	}
 
 	auto byte = this->data[this->arrayPosition][this->bytePosition];
-	auto bit = byte & 1 << this->bitPosition++;
+
+	uint8_t bit = 0;
+	if (this->mode == Mode::MSB)
+	{
+		bit = byte & 1 << this->bitPosition--;
+	}
+	else
+	{
+		bit = byte & 1 << this->bitPosition++;
+	}
 
 	// Check if last bit of byte
-	if (this->bitPosition >= 8)
+	if (this->bitPosition >= 8 && this->mode == Mode::LSB ||
+		this->bitPosition <= -1 && this->mode == Mode::MSB)
 	{
-		this->bitPosition = 0;
+		if (this->mode == Mode::LSB)
+		{
+			this->bitPosition = 0;
+		}
+		else
+		{
+			this->bitPosition = 7;
+		}
+
 		this->bytePosition++;
 		// Check if last byte of array
 		if (this->bytePosition >= this->lengths[this->arrayPosition])

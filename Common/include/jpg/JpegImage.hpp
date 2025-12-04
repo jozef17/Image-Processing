@@ -12,6 +12,20 @@
 
 struct Segment;
 
+struct SofComponentInfo
+{
+	uint8_t componentId;
+	uint8_t sampFactorH;
+	uint8_t sampFactorV;
+	uint8_t quantTableId;
+};
+
+/// <summary>
+/// Minimal jpeg image loader
+/// - Baseline DCT only (no progresive)
+/// - 8bit per channel only
+/// - YCbCr color space only
+/// </summary>
 class JpegImage : public Image
 {
 public:
@@ -22,12 +36,6 @@ private:
 
 	void ProcessSegment(const Segment& segment);
 	
-	/// <summary>
-	/// Process application specific metadata
-	/// </summary>
-	/// <param name="segment">Segment data</param>
-	void ProcessApp0(const Segment& segment);
-
 	/// <summary>
 	/// Process Quantization tables
 	/// </summary>
@@ -54,9 +62,18 @@ private:
 	void ProcessDht(const Segment& segment);
 
 	/// Huffmann tables
-	std::map<uint8_t, std::vector<HuffmanCode>> huffmanTables;
-//	std::map<uint8_t, std::vector<HuffmanCode>> dhtDCTables;
-//	std::map<uint8_t, std::vector<HuffmanCode>> dhtACTables;
+	/// key: table ID, value: list of codes
+	std::map<uint8_t, std::vector<HuffmanCode>> dcTables;
+	std::map<uint8_t, std::vector<HuffmanCode>> acTables;
+
+	/// Quantization tables
+	std::map<uint8_t, std::vector<uint8_t>> quantizationTables;
+
+	/// Subsampling (& quantization table ID)
+	/// component ID, sampling factor H,V, quantization table ID
+	std::vector<SofComponentInfo> components;
+	uint8_t maxSampFactorH = 0;
+	uint8_t maxSampFactorV = 0;
 
 };
 

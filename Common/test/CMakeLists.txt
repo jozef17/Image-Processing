@@ -2,6 +2,7 @@
 
 set(SOURCES
     BitmapLoaderTest.cpp
+	BitStreamTest.cpp
 	CommandLineParserTest.cpp
 	ImageLoaderTest.cpp
 	ImageTest.cpp

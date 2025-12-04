@@ -9,6 +9,7 @@ set(INCLUDES
 
 add_executable (jpg ${SOURCES} ${INCLUDES} )
 
+target_compile_definitions(jpg PUBLIC ENABLE_LOGS)
 target_link_libraries(jpg Common)
 
 list (APPEND EXTRA_INCLUDES "${CMAKE_CURRENT_LIST_DIR}/include")
