@@ -26,10 +26,14 @@ struct SofComponentInfo
 /// - 8bit per channel only
 /// - YCbCr color space only
 /// </summary>
-class JpegImage : public Image
+class JpegLoader : public Image
 {
 public:
-	JpegImage(const std::string& filename);
+	JpegLoader(const std::string& filename);
+
+	static bool IsJpegImage(const uint8_t* header, uint32_t size);
+
+
 
 private:
 	void LoadImage(const std::string& filename);

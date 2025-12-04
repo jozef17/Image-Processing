@@ -4,11 +4,10 @@
 #include "BitmapLoader.hpp"
 #include "gif/GifLoader.hpp"
 #include "png/PngLoader.hpp"
+#include "jpg/JpegLoader.hpp"
 #include "Exception.hpp"
 
 #include <fstream>
-#include <iomanip>
-#include <iostream>
 
 std::unique_ptr<Image> ImageLoader::LoadImage(const std::string& image)
 {
@@ -32,6 +31,12 @@ std::unique_ptr<Image> ImageLoader::LoadImage(const std::string& image)
 	{
 		GifLoader loader(image);
 		return loader.LoadGifImage();
+	}
+
+	if (JpegLoader::IsJpegImage(buffer, sizeof(buffer)))
+	{
+		JpegLoader loader(image);
+//		return std::make_unique<JpegLoader>(std::move(loader));
 	}
 
 	if (BitmapLoader::IsBitmapImage(buffer, sizeof(buffer)))

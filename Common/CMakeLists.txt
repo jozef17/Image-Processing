@@ -15,7 +15,7 @@ set(SOURCES
    src/Window.cpp
    src/gif/GifLoader.cpp
    src/gif/LZW.cpp
-   src/jpg/JpegImage.cpp
+   src/jpg/JpegLoader.cpp
    src/png/Adler32.cpp
    src/png/HuffmanDecoder.cpp
    src/png/Inflate.cpp 
@@ -40,7 +40,7 @@ set(INCLUDES
    include/Window.hpp
    include/gif/GifLoader.hpp
    include/gif/LZW.hpp
-   include/jpg/JpegImage.hpp
+   include/jpg/JpegLoader.hpp
    include/png/Adler32.hpp
    include/png/BlockDecoder.hpp
    include/png/HuffmanDecoder.hpp

@@ -1,4 +1,4 @@
-#include "jpg/JpegImage.hpp"
+#include "jpg/JpegLoader.hpp"
 #include "Exception.hpp"
 #include "BitStream.hpp"
 
@@ -73,7 +73,7 @@ void LogSegment(const Segment& segment)
 	std::cout << std::endl;
 }
 
-JpegImage::JpegImage(const std::string& filename)
+JpegLoader::JpegLoader(const std::string& filename)
 {
 	LoadImage(filename);
 
@@ -82,7 +82,17 @@ JpegImage::JpegImage(const std::string& filename)
 	this->dcTables.clear();
 }
 
-void JpegImage::LoadImage(const std::string& filename)
+bool JpegLoader::IsJpegImage(const uint8_t* header, uint32_t size)
+{
+	if (size < 4)
+	{
+		throw RuntimeException("Not enough data to asses the file (jpg)");
+	}
+	// TODO check jpeg header
+	return false;
+}
+
+void JpegLoader::LoadImage(const std::string& filename)
 {
 	std::ifstream file(filename, std::ios::binary);
 	if(!file.good())
@@ -174,7 +184,7 @@ void JpegImage::LoadImage(const std::string& filename)
 	}
 }
 
-void JpegImage::ProcessSegment(const Segment& segment)
+void JpegLoader::ProcessSegment(const Segment& segment)
 {
 	// Skip application specific segments & comment (0xfe)
 	if (segment.marker[1] >= 0xe0 && segment.marker[1] <= 0xef || segment.marker[1] == 0xfe)
@@ -206,7 +216,7 @@ void JpegImage::ProcessSegment(const Segment& segment)
 
 // Cobtains quantization tables
 // Precission (1/2 byte), Table ID (1/2 byte), 64 bytes of quantization data arranged in zig-zag order
-void JpegImage::ProcessDqt(const  Segment& segment)
+void JpegLoader::ProcessDqt(const  Segment& segment)
 {
 	// Supports only 8bit mode (1st half (msb) of 1st byte determines 8 (0) or 16 (!0) bit mode)
 	if (segment.data[0] > 0x0f)
@@ -255,7 +265,7 @@ void JpegImage::ProcessDqt(const  Segment& segment)
 
 // Start of frame - image metadata
 // Precision (1 byte), Height (2 bytes), Width (2 bytes), Number of components (1 byte), Component info (3 bytes per component - ID, Sampling (1/2 ), Quantization table ID)
-void JpegImage::ProcessSof(const  Segment& segment)
+void JpegLoader::ProcessSof(const  Segment& segment)
 {
 	if (segment.data[0] != 8)
 	{
@@ -320,7 +330,7 @@ void JpegImage::ProcessSof(const  Segment& segment)
 
 // Start of scan - mapping between components and huffman tables
 // Number of components (1 byte), ID and huffman table selection (2 bytes per component), other (3bytes)
-void JpegImage::ProcessSos(const Segment& segment)
+void JpegLoader::ProcessSos(const Segment& segment)
 {
 	std::cout << "Sos:" << std::endl;
 	LogSegment(segment);
@@ -490,7 +500,7 @@ void JpegImage::ProcessSos(const Segment& segment)
 
 // Deffine huffman tables
 // Table class - DC/AC (1/2 byte), Table ID (1/2 byte), 16 bytes of code lengths, list of codes
-void JpegImage::ProcessDht(const Segment& segment)
+void JpegLoader::ProcessDht(const Segment& segment)
 {
 	std::cout << "Dht:" << std::endl;
 

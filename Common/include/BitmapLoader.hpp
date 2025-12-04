@@ -19,7 +19,7 @@ public:
 	/// <param name="header">header data</param>
 	/// <param name="size">size of header</param>
 	/// <returns></returns>
-	static bool IsBitmapImage(uint8_t *header, uint32_t size);
+	static bool IsBitmapImage(const uint8_t *header, uint32_t size);
 
 	/// <summary>
 	/// Loads bitmap image

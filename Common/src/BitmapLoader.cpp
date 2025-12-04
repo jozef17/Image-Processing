@@ -32,7 +32,7 @@ PACK(struct BITMAPINFOHEADER
 
 BitmapLoader::BitmapLoader(std::string filename) : filename(filename) {}
 
-bool BitmapLoader::IsBitmapImage(uint8_t* header, uint32_t size)
+bool BitmapLoader::IsBitmapImage(const uint8_t* header, uint32_t size)
 {
 	if (size < 2)
 	{

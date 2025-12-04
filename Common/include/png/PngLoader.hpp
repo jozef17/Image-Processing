@@ -17,7 +17,7 @@ class PngLoader
 public:
 	PngLoader(const std::string& filename);
 
-	static bool IsPngImage(uint8_t* header, uint32_t size);
+	static bool IsPngImage(const uint8_t* header, uint32_t size);
 
 	std::unique_ptr<Image> LoadPngImage();
 
