@@ -33,19 +33,6 @@ enum class ColorComponent : uint8_t
 	Cr = 3
 };
 
-int DecodeHuffman(BitStream& bitStream, const std::vector<HuffmanCode>& table) {
-	uint16_t code = 0;
-	for (uint8_t length = 1; length <= 16; ++length) {
-		code = (code << 1) | bitStream.GetNext();
-		for (const auto& entry : table) {
-			if (entry.length == length && entry.code == code) {
-				return entry.value;
-			}
-		}
-	}
-	throw std::runtime_error("Invalid Huffman code encountered");
-}
-
 static constexpr uint8_t zigZag[8][8] = {{ 0, 1, 5, 6,14,15,27,28},
 										 { 2, 4, 7,13,16,26,29,42},
 										 { 3, 8,12,17,25,30,41,43},
@@ -80,6 +67,7 @@ JpegLoader::JpegLoader(const std::string& filename)
 	// Clear temporary data
 	this->acTables.clear();
 	this->dcTables.clear();
+	this->components.clear();
 }
 
 bool JpegLoader::IsJpegImage(const uint8_t* header, uint32_t size)
@@ -121,7 +109,7 @@ void JpegLoader::LoadImage(const std::string& filename)
 			ss << "Was expecting start of segment marker, instead got " << std::setw(2) << std::setfill('0') << std::hex << (int)segment.marker[0] << "!";
 			throw std::runtime_error(ss.str());
 		}
-		
+
 		// End Of Image (EOI)
 		if (segment.marker[1] == 0xd9)
 		{
@@ -143,43 +131,49 @@ void JpegLoader::LoadImage(const std::string& filename)
 			segment.data.insert(segment.data.end(), buffer, buffer + toRead);
 		} while (size > 0);
 
+		ProcessSegment(segment);
+
 		// Load compressed data - after SoS marker
 		if (segment.marker[1] == 0xda)
 		{
+			std::vector<uint8_t> compressedData;
 			uint8_t current;
+
 			while (file.good())
 			{
 				file >> current;
-				if (current == 0xff)
+				if (current != 0xff)
 				{
-					file >> current;
+					compressedData.push_back(current);
+					continue;
+				}
 
-					if (current >= 0xd0 && current <= 0xd7)
-					{
-						// TODO handle restart interval
-						std::cout << "SOS Restart interval detected: " << std::dec << (int)(current) << std::endl;
-						continue;
-					}
-					else if (current == 0x00)
-					{
-						// 0xff escaped - add only 0xff
-						segment.data.push_back(0xff);
-					}
-					else
-					{
-						// End of stream, move back in file
-						file.seekg(std::ios::cur - 2);
-						break;
-					}
+				file >> current;
+				if (current == 0x00)
+				{
+					// 0xff escaped - add only 0xff
+					compressedData.push_back(0xff);
+					continue;
+				}
+
+				// Marker detected
+				EntropyDecode(compressedData);
+				compressedData.clear();
+
+				if (current >= 0xd0 && current <= 0xd7) // TODO: potentialy not needed to be deleted
+				{
+					std::cout << "SOS Restart interval detected: " << std::dec << (int)(current) << std::endl;
+					continue;
 				}
 				else
 				{
-					segment.data.push_back(current);
+					// End of stream, move back in file
+					file.seekg(std::ios::cur - 2);
+					break;
 				}
 			}
 		}
 
-		ProcessSegment(segment);
 		segment.data.clear();
 	}
 }
@@ -249,7 +243,7 @@ void JpegLoader::ProcessDqt(const  Segment& segment)
 	std::copy(segment.data.begin() + 1, segment.data.begin() + 65, quantTable.begin());
 	this->quantizationTables[(uint8_t)dqtType] = quantTable;
 
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	std::cout << "DQT: " << (dqtType == DqtType::Chrominance ? "Chrominance" : "Luminance") << std::endl;
 	for (uint8_t a = 0; a < 8; a++)
 	{
@@ -260,7 +254,7 @@ void JpegLoader::ProcessDqt(const  Segment& segment)
 		std::cout << std::endl;
 	}
 	std::cout << "---------------------------------------------------------------------" << std::endl;
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 }
 
 // Start of frame - image metadata
@@ -285,7 +279,7 @@ void JpegLoader::ProcessSof(const  Segment& segment)
 	{
 		SofComponentInfo info = {};
 
-//		ColorComponent component = (ColorComponent)segment.data[i * 3 + 6]; // tbd if needed
+		//		ColorComponent component = (ColorComponent)segment.data[i * 3 + 6]; // tbd if needed
 		info.componentId  = segment.data[i * 3 + 6];
 		info.sampFactorH  = (segment.data[i * 3 + 7] & 0xf0) >> 4;
 		info.sampFactorV  = (segment.data[i * 3 + 7] & 0x0f);
@@ -304,7 +298,7 @@ void JpegLoader::ProcessSof(const  Segment& segment)
 			this->maxSampFactorV = info.sampFactorV;
 		}
 
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+		//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 		ColorComponent component = (ColorComponent)segment.data[i * 3 + 6];
 		std::string componentName = "??";
 		if (component == ColorComponent::Y)
@@ -317,7 +311,7 @@ void JpegLoader::ProcessSof(const  Segment& segment)
 		std::cout << componentName << ": " << "Sampling factors H: " << std::dec << (int)info.sampFactorH
 			<< ", V: " << std::dec << (int)info.sampFactorV << ", " << " Quantization table ID:"
 			<< std::dec << (int)info.quantTableId << std::endl;
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+		//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	}
 
 	//                Precision Height  Width   #comp Y                        Cb          Cr
@@ -335,27 +329,24 @@ void JpegLoader::ProcessSos(const Segment& segment)
 	std::cout << "Sos:" << std::endl;
 	LogSegment(segment);
 
-	// component ID, (DC table, AC table)
-	std::map <uint8_t, std::tuple<uint8_t, uint8_t>> componentHuffmanTables;
-
 	// Process header
 	auto index = 1;
-	std::cout << "Component count: " << std::dec << (int)segment.data[0] << std::endl;
+std::cout << "Component count: " << std::dec << (int)segment.data[0] << std::endl;
 	for (uint8_t i = 0; i < segment.data[0]; i++)
 	{
 		uint8_t component = segment.data[index];
 
-		/////////////////////////////////////////////////////////////////////////////////////////////////////////////
-		std::string componentStr = "??";
-		if (segment.data[index] == 1)
-			componentStr = "Y ";
-		if (segment.data[index] == 2)
-			componentStr = "Cb";
-		if (segment.data[index] == 3)
-			componentStr = "Cr";
-		index++; // increment index to get value
-		std::cout << componentStr << " DC: " << ((int)segment.data[index] >> 4) << ", AC: " << (int)(segment.data[index] & 0x0f) << std::endl;
-		/////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////
+std::string componentStr = "??";
+if (segment.data[index] == 1)
+	componentStr = "Y ";
+if (segment.data[index] == 2)
+	componentStr = "Cb";
+if (segment.data[index] == 3)
+	componentStr = "Cr";
+index++; // increment index to get value
+std::cout << componentStr << " DC: " << ((int)segment.data[index] >> 4) << ", AC: " << (int)(segment.data[index] & 0x0f) << std::endl;
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 		componentHuffmanTables[component] = std::make_tuple(
 			segment.data[index] >> 4, // DC table
@@ -363,139 +354,6 @@ void JpegLoader::ProcessSos(const Segment& segment)
 		);
 		index++; // increment for next loop
 	}
-
-	// skip next 3 bytes
-	index += 3;
-
-	// Create bitStream
-	BitStream bitStream(BitStream::Mode::MSB);
-	const auto length = segment.data.size() - index;
-	std::unique_ptr<uint8_t[]> data(new uint8_t[length]);
-	std::memcpy(data.get(), &segment.data[index], length);
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-	std::cout << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!" << std::endl;
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-	for (uint8_t i = 0; i < length; i++)
-	{
-		for (int j = 7; j >= 0; j--)
-			std::cout << ((data[i] & 1 << j) ? "1" : "0");
-		std::cout << " ";
-	}
-	std::cout << std::endl;
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-	bitStream.Append(std::move(data), length);
-
-// ?????????????????????????????????????????????????????????????????????????????????????????????????????????	
-    std::vector<int16_t> block(64, 0);
-
-    // 1. Decode DC coefficient
-    auto dcTableId = std::get<0>(componentHuffmanTables[components.at(0).componentId]);
-	const auto& dcTable = this->dcTables[dcTableId];
-
-	// For each MCU (Minimum Coded Unit)
-	const auto mcuWidth = 8 * this->maxSampFactorH;
-	const auto mcuHeight = 8 * this->maxSampFactorV;
-	const auto mcu = mcuHeight * mcuWidth;
-
-	// Initialize DC coefficients for each component
-	std::map<uint8_t, int> dcCoeficients; // component ID, last DC coefficient
-	for (const auto& comp : components)
-	{
-		dcCoeficients[comp.componentId] = 0;
-	}
-
-	// TODO handle case where image width/height is not multiple of MCU size
-	// TODO need for temporary image buffer ?
-	for (int i = 0; i < mcu; i++)
-	{
-		for (const auto& comp : components)
-		{
-			std::cout << "Component ID: " << std::dec << (int)comp.componentId << std::endl;
-
-			// Get Huffman tables for component
-			auto dcTableId = std::get<0>(componentHuffmanTables[comp.componentId]);
-			auto acTableId = std::get<1>(componentHuffmanTables[comp.componentId]);
-			std::cout << std::dec << " DC Table: " << (int)dcTableId << ", AC Table: " << (int)acTableId << std::endl;
-
-			auto dcTable = this->dcTables[dcTableId];
-			auto acTable = this->acTables[acTableId];
-
-			// Decode DC coefficient
-			// TODO move to separate function / class
-			int code = 0;
-			int value = -1;
-
-			// Read minimum code length - 1 bits
-			std::cout << "Decoding: ";
-			for (int i = 0; i < dcTable[0].length -1; i++)
-			{
-				auto bit = bitStream.GetNext();
-				std::cout << std::dec << (int)bit;
-				code = (code << 1) | bit;
-			}
-
-			// loop over code lengths from minimum to maximum
-			for (int i = dcTable[0].length; i <= dcTable[dcTable.size() - 1].length && value == -1; i++)
-			{
-				auto bit = bitStream.GetNext();
-				std::cout << std::dec << (int)bit;
-				code = (code << 1) | bit;
-
-				// Check if code matches any entry in table
-				for (const auto& entry : dcTable)
-				{
-					if (entry.length == i && entry.code == code)
-					{
-						value = entry.value;
-						break;
-					}
-					else if (entry.length > i)
-					{
-						break;
-					}
-				}
-			}
-
-			if (value == -1)
-			{
-				throw RuntimeException("Failed to decode DC coefficient!");
-			}
-			std::cout << "DC Value: " << std::dec << value << std::endl;
-
-			// Read additional bits
-			// First bit determines the sign
-			// if 1, number is positive and take as is
-			// if 0, number is negative and need to be subtracted by (2^value - 1)
-			int additionalBits = bitStream.GetNext();
-			bool isNegative = additionalBits == 0;
-			for (int i = 1; i < value; i++)
-			{
-				additionalBits = (additionalBits << 1) | bitStream.GetNext();
-			}
-			if (isNegative)
-			{
-				additionalBits = additionalBits - ((1 << value) - 1);
-			}
-			std::cout << "Additional bits: " << std::dec << additionalBits << std::endl;
-
-			// Update DC coefficient
-			dcCoeficients[comp.componentId] += additionalBits;
-			std::cout << "Component: " << std::dec << (int)comp.componentId << ", DC Coefficient: " << dcCoeficients[comp.componentId] << std::endl;
-
-
-			break; // TODO remove
-		}
-		break; // TODO remove
-	}
-
-//	Sos:
-//	ff da, 10(00 c) : 03 01 00 02 11 03 11   00 3f 00   fd fc a2 8a 28 03
-// component ID, (DC table, AC table)
-//		Y  DC : 0, AC : 0
-//		Cb DC : 1, AC : 1
-//		Cr DC : 1, AC : 1
-// 10111111 00111111 01000101 01010001 00010100 11000000 wrong!
-// 11111101 11111100 10100010 10001010 00101000 00000011 ok
 }
 
 // Deffine huffman tables
@@ -539,7 +397,7 @@ void JpegLoader::ProcessDht(const Segment& segment)
 	HuffmanCode::AsignCodes(codes);
 
 	// DC table
-	if (htType == 0) 
+	if (htType == 0)
 	{
 		this->dcTables[htNumber] = codes;
 	}
@@ -550,4 +408,155 @@ void JpegLoader::ProcessDht(const Segment& segment)
 		this->acTables[htNumber] = codes;
 	}
 	std::cout << std::endl;
+}
+
+void JpegLoader::EntropyDecode(std::vector<uint8_t> &compressedData)
+{
+	// Create bitStream
+	BitStream bitStream(BitStream::Mode::MSB);
+	const auto length = compressedData.size();
+	std::unique_ptr<uint8_t[]> data(new uint8_t[length]);
+	std::memcpy(data.get(), compressedData.data(), length);
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+for (uint8_t i = 0; i < length; i++)
+{
+	for (int j = 7; j >= 0; j--)
+		std::cout << ((data[i] & 1 << j) ? "1" : "0");
+	std::cout << " ";
+}
+std::cout << std::endl;
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	bitStream.Append(std::move(data), length);
+
+	// For each MCU (Minimum Coded Unit)
+	const auto mcuWidth = 8 * this->maxSampFactorH;
+	const auto mcuHeight = 8 * this->maxSampFactorV;
+	const auto mcu = mcuHeight * mcuWidth;
+
+	// Initialize DC coefficients for each component
+	std::map<uint8_t, int> dcCoeficients; // component ID, last DC coefficient
+	for (const auto& comp : this->components)
+	{
+		dcCoeficients[comp.componentId] = 0;
+	}
+
+	// TODO handle case where image width/height is not multiple of MCU size
+	// TODO need for temporary image buffer ?
+	for (int x = 0; x < mcu; x++)
+	{
+		for (const auto& comp : this->components)
+		{
+			// TODO loop for each block in MCU according to sampling factors
+
+	std::cout << "Component ID: " << std::dec << (int)comp.componentId << std::endl;
+
+			// Get Huffman tables for component
+			auto [dcTableId, acTableId] = this->componentHuffmanTables[comp.componentId];
+std::cout << std::dec << " DC Table: " << (int)dcTableId << ", AC Table: " << (int)acTableId << std::endl;
+
+			const auto &dcTable = this->dcTables[dcTableId];
+			const auto &acTable = this->acTables[acTableId];
+
+			// Decode DC coefficient
+			auto dcLength = Decode(bitStream, dcTable);
+			std::cout << "Decoded DC Value (length): " << std::dec << dcLength << std::endl;
+
+			int dcValue = Read(bitStream, dcLength);
+			std::cout << "Additional bits: " << std::dec << dcValue << std::endl;
+
+			// Update DC coefficient
+			dcCoeficients[comp.componentId] += dcValue;
+			std::cout << "Component: " << std::dec << (int)comp.componentId << ", DC Coefficient: " << dcCoeficients[comp.componentId] << std::endl;
+
+			// TODO decode 63 AC coefficients
+			// TODO skip if EOB
+			// TODO store decoded values
+
+			break; // TODO remove
+		}
+		break; // TODO remove
+	}
+
+	//	Sos:
+	//	ff da, 10(00 c) : 03 01 00 02 11 03 11   00 3f 00   fd fc a2 8a 28 03
+	// component ID, (DC table, AC table)
+	//		Y  DC : 0, AC : 0
+	//		Cb DC : 1, AC : 1
+	//		Cr DC : 1, AC : 1
+	// 11111101 11111100 10100010 10001010 00101000 00000011 ok
+}
+
+uint16_t JpegLoader::Decode(BitStream &bitStream, const std::vector<HuffmanCode>& huffmanTable) const
+{
+	uint16_t code = 0;
+
+	// Read initial bits according to minimum code length
+	for (int i = 0; i < huffmanTable[0].length; i++)
+	{
+		uint16_t bit = bitStream.GetNext();
+//std::cout << "Next bit " << std::dec << (int)bit << std::endl;;
+		code = code | bit << i;
+	}
+
+	// loop over code lengths from minimum to maximum
+	for (int i = huffmanTable[0].length; i <= huffmanTable[huffmanTable.size() - 1].length; i++)
+	{
+		uint16_t bit = bitStream.GetNext();
+		code = code | bit << i;
+//std::cout << "Next bit " << std::dec << (int)bit << std::endl;;
+//std::cout << std::dec << "i: " << i << " code " << (int)code << ": ";
+//for (int j = 0; j < 16; j++)
+//{
+//std::cout << ((code & 1 << j) ? "1" : "0");
+//if (j == 7) std::cout << " ";
+//}
+//std::cout << std::endl;
+
+		// Check if code matches any entry in table
+		for(const auto& entry : huffmanTable)
+		{
+			if(entry.length <= i)
+			{
+				continue;
+			} 
+			else if (entry.length > i + 1)
+			{
+				break;
+			}
+
+if (entry.length != (i + 1))
+std::cout << "????????????????????" << std::endl;
+			if (entry.length == (i + 1) && entry.code == code)
+			{
+				return entry.value;
+			}
+		}
+	}
+
+	throw RuntimeException("Failed to decode DC coefficient!");
+}
+
+// Read additional bits
+// First bit determines the sign
+// if 1, number is positive and take as is
+// if 0, number is negative and need to be subtracted by (2^value - 1)
+int16_t JpegLoader::Read(BitStream& bitStream, uint8_t length) const
+{
+	int16_t value = 0;
+	if (length > 0)
+	{
+		value = bitStream.GetNext();
+		bool isNegative = value == 0; // First bit is a sign
+		for (int i = 1; i < length; i++)
+		{
+			// TODO check if done right!!!
+			value = (value << 1) | bitStream.GetNext();
+		}
+
+		if (isNegative)
+		{
+			value = value - ((1 << length) - 1);
+		}
+	}
+	return value;
 }

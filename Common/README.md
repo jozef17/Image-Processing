@@ -1,14 +1,20 @@
 # Common
 Static library containing shared functionality
 
-## (WIP)JpegImage
+## JpegLoader
 - jpeg image decoder
 - Referencess:
 - - [Anatomy of a JPEG](https://www.ccoderun.ca/programming/2017-01-31_jpeg/)
   - [TODO](TODO) 
-- - TODO
+- **Supported features:**
+    - baseline DCT is supported (no progressive DCT))
+    - 8 bit resolution is supported (no 16bit)
+    - 3 color components (no grayscale or CMYK)
+    - 4:4:4 and 4:2:0 chroma subsampling
 
-## PngImage
+TODO: add class model and decoding steps
+
+## PngLoader
 - PNG image decoder
 - Referencess:
     - [PNG Specification](https://www.w3.org/TR/PNG/)

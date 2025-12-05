@@ -1,6 +1,6 @@
 # Image Processing
 - CMake based projects related to Image Processing
-- Written in C++
+- Written in C++17
 - Parallelised using [std::thread](https://en.cppreference.com/w/cpp/thread/thread) and / or [Nvidia CUDA](https://developer.nvidia.com/cuda-zone)
 - Unit tests written for Google Test framework
 - All project support following input image formats:
@@ -8,7 +8,7 @@
     - Bitmap (.bmp)
     - Graphics Interchange Format (.gif)
         - **NOTE:** only limited support
-    - (WIP)Joint Photographic Experts Group (.jpg)
+    - Joint Photographic Experts Group (.jpg)
         - **NOTE:** not the whole standard is supported, scroll down for list of un/supported features.
     - Portable Network Graphics (.png) 
         - **NOTE:** not the whole standard is supported, scroll down for list of un/supported features.
@@ -51,11 +51,14 @@ Static library containing shared functionality
 - Loads requested image
 - Checks content to determine which image format is used
 
-### [(WIP) JpegImage](Common)
+### [JpegLoader](Common)
 - jpeg image decoder
-- **Un/supported features:**
-    - TODO
- 
+- **Supported features:**
+    - baseline DCT is supported (no progressive DCT))
+    - 8 bit resolution is supported (no 16bit)
+    - 3 color components (no grayscale or CMYK)
+    - 4:4:4 and 4:2:0 chroma subsampling
+
 ### Pixel
 - Represents pixel
 - Enables conversion to:

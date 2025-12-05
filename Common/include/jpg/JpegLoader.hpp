@@ -11,6 +11,7 @@
 #include "HuffmanCode.hpp"
 
 struct Segment;
+class BitStream;
 
 struct SofComponentInfo
 {
@@ -33,7 +34,7 @@ public:
 
 	static bool IsJpegImage(const uint8_t* header, uint32_t size);
 
-
+	// TODO load image
 
 private:
 	void LoadImage(const std::string& filename);
@@ -65,6 +66,18 @@ private:
 	/// <param name="segment">Segment data</param>
 	void ProcessDht(const Segment& segment);
 
+	void EntropyDecode(std::vector<uint8_t> &compressedData);
+
+	/// <summary>
+	/// Decode single value from bit stream using provided huffman table
+	/// </summary>
+	/// <param name="bitStream">Encoded bitstream</param>
+	/// <param name="huffmanTable">Huffman Table to be used for decoding</param>
+	/// <returns>Decoded value, an exception is thrown when decoding fails</returns>
+	uint16_t Decode(BitStream& bitStream, const std::vector<HuffmanCode>& huffmanTable) const;
+
+	int16_t Read(BitStream& bitStream, uint8_t size) const;
+
 	/// Huffmann tables
 	/// key: table ID, value: list of codes
 	std::map<uint8_t, std::vector<HuffmanCode>> dcTables;
@@ -78,6 +91,9 @@ private:
 	std::vector<SofComponentInfo> components;
 	uint8_t maxSampFactorH = 0;
 	uint8_t maxSampFactorV = 0;
+
+	/// component ID, (DC table, AC table)
+	std::map <uint8_t, std::tuple<uint8_t, uint8_t>> componentHuffmanTables;
 
 };
 
