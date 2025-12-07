@@ -68,6 +68,8 @@ private:
 
 	void EntropyDecode(std::vector<uint8_t> &compressedData);
 
+	std::vector<int16_t> DecodeBlock(BitStream& bitStream, const SofComponentInfo &component);
+
 	/// <summary>
 	/// Decode single value from bit stream using provided huffman table
 	/// </summary>
@@ -84,7 +86,7 @@ private:
 	std::map<uint8_t, std::vector<HuffmanCode>> acTables;
 
 	/// Quantization tables
-	std::map<uint8_t, std::vector<uint8_t>> quantizationTables;
+	std::map<uint8_t, std::vector<uint16_t>> quantizationTables;
 
 	/// Subsampling (& quantization table ID)
 	/// component ID, sampling factor H,V, quantization table ID

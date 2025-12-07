@@ -7,6 +7,11 @@
 #include <cstdint>
 #include <iomanip>
 
+// SIMD
+#if defined(_MSC_VER) && defined(_M_X64)
+#include <immintrin.h>
+#endif
+
 // TMP ////////////////////////////////////////////////////
 #include <iostream>
 // TMP ////////////////////////////////////////////////////
@@ -238,10 +243,10 @@ void JpegLoader::ProcessDqt(const  Segment& segment)
 		throw std::runtime_error("Unsupported quantization table type (dqt):" + std::to_string((int)segment.data[0] & 0x0f));
 	}
 
-	std::vector<uint8_t> quantTable(64);
+	std::vector<uint16_t> quantTable(64);
 	// todo zig-zag reordering ?
 	std::copy(segment.data.begin() + 1, segment.data.begin() + 65, quantTable.begin());
-	this->quantizationTables[(uint8_t)dqtType] = quantTable;
+	this->quantizationTables[static_cast<uint8_t>(dqtType)] = quantTable;
 
 	/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	std::cout << "DQT: " << (dqtType == DqtType::Chrominance ? "Chrominance" : "Luminance") << std::endl;
@@ -258,7 +263,7 @@ void JpegLoader::ProcessDqt(const  Segment& segment)
 }
 
 // Start of frame - image metadata
-// Precision (1 byte), Height (2 bytes), Width (2 bytes), Number of components (1 byte), Component info (3 bytes per component - ID, Sampling (1/2 ), Quantization table ID)
+// Precision (1 byte), Height (2 bytes), Width (2 bytes), Number of components (1 byte), Component info (3 bytes per component - ID, Sampling (1/2 width 1/2 height), Quantization table ID)
 void JpegLoader::ProcessSof(const  Segment& segment)
 {
 	if (segment.data[0] != 8)
@@ -431,7 +436,7 @@ std::cout << std::endl;
 	// For each MCU (Minimum Coded Unit)
 	const auto mcuWidth = 8 * this->maxSampFactorH;
 	const auto mcuHeight = 8 * this->maxSampFactorV;
-	const auto mcu = mcuHeight * mcuWidth;
+	// const auto mcu = mcuHeight * mcuWidth; // Is this needed???
 
 	// Initialize DC coefficients for each component
 	std::map<uint8_t, int> dcCoeficients; // component ID, last DC coefficient
@@ -442,39 +447,45 @@ std::cout << std::endl;
 
 	// TODO handle case where image width/height is not multiple of MCU size
 	// TODO need for temporary image buffer ?
-	for (int x = 0; x < mcu; x++)
+	// TODO calculate number of MCUs in image and loop over them
+	for (int x = 0; x < 1; x++)
 	{
-		for (const auto& comp : this->components)
+		for (const auto& component : this->components)
 		{
-			// TODO loop for each block in MCU according to sampling factors
+			for (int y = 0; y < component.sampFactorH * component.sampFactorV; y++)
+			{
+				// Decode block
+				auto block = DecodeBlock(bitStream, component);
+				// Update DC coefficient
+				dcCoeficients[component.componentId] += block[0];
+				block[0] = dcCoeficients[component.componentId];
 
-	std::cout << "Component ID: " << std::dec << (int)comp.componentId << std::endl;
+				// Get quantization table for component
+				auto quantTableType = static_cast<ColorComponent>(component.componentId) == ColorComponent::Y ? DqtType::Luminance : DqtType::Chrominance;
+				// TODO add check for existence of quantization table
+				const auto& quantTable = this->quantizationTables[static_cast<uint8_t>(quantTableType)];
 
-			// Get Huffman tables for component
-			auto [dcTableId, acTableId] = this->componentHuffmanTables[comp.componentId];
-std::cout << std::dec << " DC Table: " << (int)dcTableId << ", AC Table: " << (int)acTableId << std::endl;
+				// Dequantization - Elementwise multiplication of block by corresponding quantization table
+#if defined(_MSC_VER) && defined(_M_X64) // SIMD version using AVX2 (Intel x64)
+				for (int i = 0; i < 64; i += 32)
+				{
+					__m256i simdBlock = _mm256_loadu_si256(reinterpret_cast<const __m256i*>(&block[i]));
+					__m256i simdQuant = _mm256_loadu_si256(reinterpret_cast<const __m256i*>(&quantTable[i]));
+					__m256i simdMultipy = _mm256_mullo_epi16(simdBlock, simdQuant);
+					_mm256_storeu_si256(reinterpret_cast<__m256i*>(&block[i]), simdMultipy);
+				}
+#else
+				for (int i = 0; i < 64; i++)
+				{
+					block[i] = block[i] * quantTable[i];
+				}
+#endif
 
-			const auto &dcTable = this->dcTables[dcTableId];
-			const auto &acTable = this->acTables[acTableId];
-
-			// Decode DC coefficient
-			auto dcLength = Decode(bitStream, dcTable);
-			std::cout << "Decoded DC Value (length): " << std::dec << dcLength << std::endl;
-
-			int dcValue = Read(bitStream, dcLength);
-			std::cout << "Additional bits: " << std::dec << dcValue << std::endl;
-
-			// Update DC coefficient
-			dcCoeficients[comp.componentId] += dcValue;
-			std::cout << "Component: " << std::dec << (int)comp.componentId << ", DC Coefficient: " << dcCoeficients[comp.componentId] << std::endl;
-
-			// TODO decode 63 AC coefficients
-			// TODO skip if EOB
-			// TODO store decoded values
-
-			break; // TODO remove
+for (auto x : block)
+std::cout << std::dec << x << " ";
+std::cout << std::endl;
+			}
 		}
-		break; // TODO remove
 	}
 
 	//	Sos:
@@ -486,20 +497,68 @@ std::cout << std::dec << " DC Table: " << (int)dcTableId << ", AC Table: " << (i
 	// 11111101 11111100 10100010 10001010 00101000 00000011 ok
 }
 
+std::vector<int16_t> JpegLoader::DecodeBlock(BitStream& bitStream, const SofComponentInfo& component)
+{
+	std::map<uint8_t, int> dcCoeficients; // TODO move elsewhere!!!
+
+	// TODO loop for each block in MCU according to sampling factors
+	std::cout << "Component ID: " << std::dec << (int)component.componentId << std::endl;
+
+	// Get Huffman tables for component
+	const auto [dcTableId, acTableId] = this->componentHuffmanTables[component.componentId];
+	std::cout << std::dec << " DC Table: " << (int)dcTableId << ", AC Table: " << (int)acTableId << std::endl;
+
+	const auto& dcTable = this->dcTables[dcTableId];
+	const auto& acTable = this->acTables[acTableId];
+
+	// Decode DC coefficient
+	auto dcLength = Decode(bitStream, dcTable);
+	std::cout << "Decoded DC Value (length): " << std::dec << dcLength << std::endl;
+
+	int dcValue = Read(bitStream, dcLength);
+	std::cout << "Additional bits: " << std::dec << dcValue << std::endl;
+
+	// Update DC coefficient
+	dcCoeficients[component.componentId] += dcValue;
+	std::cout << "Component: " << std::dec << (int)component.componentId << ", DC Coefficient: " << dcCoeficients[component.componentId] << std::endl;
+
+	std::vector<int16_t> block(64); // Initialize all coefficients to zero
+	block[0] = dcValue;
+	// Decode AC coefficients
+	for (int i = 1; i < 64; i++)
+	{
+		auto acValue = Decode(bitStream, acTable);
+		std::cout << "Decoded AC Value: " << std::dec << acValue << std::endl;
+		// Valie 0 represents End Of Block (EOB) - all remaining coefficients are zero
+		if (acValue == 0)
+		{
+			break;
+		}
+
+		throw RuntimeException("Not implemented");
+		// TODO process acValue
+		// TODO if 0xF0 -> 16 zeroes
+		// TODO else first 4 bits = number of leading zeroes, last 4 bits = length of additional bits
+		break;
+	}
+
+	return block;
+}
+
 uint16_t JpegLoader::Decode(BitStream &bitStream, const std::vector<HuffmanCode>& huffmanTable) const
 {
 	uint16_t code = 0;
 
 	// Read initial bits according to minimum code length
-	for (int i = 0; i < huffmanTable[0].length; i++)
+	for (int i = 0; i < huffmanTable[0].length - 1; i++)
 	{
 		uint16_t bit = bitStream.GetNext();
-//std::cout << "Next bit " << std::dec << (int)bit << std::endl;;
+std::cout << "Next bit " << std::dec << (int)bit << std::endl;;
 		code = code | bit << i;
 	}
 
 	// loop over code lengths from minimum to maximum
-	for (int i = huffmanTable[0].length; i <= huffmanTable[huffmanTable.size() - 1].length; i++)
+	for (int i = huffmanTable[0].length - 1; i <= huffmanTable[huffmanTable.size() - 1].length; i++)
 	{
 		uint16_t bit = bitStream.GetNext();
 		code = code | bit << i;
