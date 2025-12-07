@@ -15,6 +15,7 @@ set(SOURCES
    src/Window.cpp
    src/gif/GifLoader.cpp
    src/gif/LZW.cpp
+   src/jpg/EntropyDecoder.cpp
    src/jpg/JpegLoader.cpp
    src/png/Adler32.cpp
    src/png/HuffmanDecoder.cpp
@@ -40,6 +41,7 @@ set(INCLUDES
    include/Window.hpp
    include/gif/GifLoader.hpp
    include/gif/LZW.hpp
+   include/jpg/EntropyDecoder.hpp
    include/jpg/JpegLoader.hpp
    include/png/Adler32.hpp
    include/png/BlockDecoder.hpp

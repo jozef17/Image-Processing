@@ -4,7 +4,6 @@
 #include "Image.hpp"
 
 #include <filesystem>
-#include <fstream>
 
 TEST(PngLoaderTest, IsPngFalse)
 {
