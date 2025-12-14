@@ -1,4 +1,5 @@
 #include "jpg/JpegLoader.hpp"
+#include "jpg/IDCT2D.hpp"
 #include "jpg/EntropyDecoder.hpp"
 #include "Exception.hpp"
 #include "BitStream.hpp"
@@ -6,11 +7,6 @@
 #include <fstream>
 #include <sstream>
 #include <cstdint>
-
-// SIMD
-#if defined(_MSC_VER) && defined(_M_X64)
-#include <immintrin.h>
-#endif
 
 // TMP ////////////////////////////////////////////////////
 #include <iostream>
@@ -46,7 +42,7 @@ static constexpr uint8_t zigZag[8][8] = {{ 0, 1, 5, 6,14,15,27,28},
 										 {10,19,23,32,39,45,52,54},
 										 {20,22,33,38,46,51,55,60},
 										 {21,34,37,47,50,56,59,61},
-										 {35,36,48,49,57,58,62,63}};
+										 {35,36,48,49,57,58,62,63} };
 
 struct Segment
 {
@@ -90,9 +86,9 @@ bool JpegLoader::IsJpegImage(const uint8_t* header, uint32_t size)
 void JpegLoader::LoadImage(const std::string& filename)
 {
 	std::ifstream file(filename, std::ios::binary);
-	if(!file.good())
+	if (!file.good())
 	{
-		throw std::runtime_error("Failed to open file " +filename +": "+strerror(errno));
+		throw std::runtime_error("Failed to open file " + filename + ": " + strerror(errno));
 	}
 
 	uint8_t buffer[128];
@@ -281,6 +277,7 @@ void JpegLoader::ProcessSof(const  Segment& segment)
 
 	this->width = ((int)segment.data[1] << 8 | (int)segment.data[2]);
 	this->height = ((int)segment.data[3] << 8 | (int)segment.data[4]);
+	this->image = std::unique_ptr<std::unique_ptr<Pixel>[]>(new std::unique_ptr<Pixel>[this->width * this->height]);
 
 	for (uint8_t i = 0; i < segment.data[5]; i++)
 	{
@@ -336,22 +333,22 @@ void JpegLoader::ProcessSos(const Segment& segment)
 
 	// Process header
 	auto index = 1;
-std::cout << "Component count: " << std::dec << (int)segment.data[0] << std::endl;
+	std::cout << "Component count: " << std::dec << (int)segment.data[0] << std::endl;
 	for (uint8_t i = 0; i < segment.data[0]; i++)
 	{
 		uint8_t component = segment.data[index];
 
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////
-std::string componentStr = "??";
-if (segment.data[index] == 1)
-	componentStr = "Y ";
-if (segment.data[index] == 2)
-	componentStr = "Cb";
-if (segment.data[index] == 3)
-	componentStr = "Cr";
-index++; // increment index to get value
-std::cout << componentStr << " DC: " << ((int)segment.data[index] >> 4) << ", AC: " << (int)(segment.data[index] & 0x0f) << std::endl;
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////
+		/////////////////////////////////////////////////////////////////////////////////////////////////////////////
+		std::string componentStr = "??";
+		if (segment.data[index] == 1)
+			componentStr = "Y ";
+		if (segment.data[index] == 2)
+			componentStr = "Cb";
+		if (segment.data[index] == 3)
+			componentStr = "Cr";
+		index++; // increment index to get value
+		std::cout << componentStr << " DC: " << ((int)segment.data[index] >> 4) << ", AC: " << (int)(segment.data[index] & 0x0f) << std::endl;
+		/////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 		componentHuffmanTables[component] = std::make_tuple(
 			segment.data[index] >> 4, // DC table
@@ -422,16 +419,16 @@ void JpegLoader::DecodeStream(std::vector<uint8_t> &compressedData)
 	const auto length = compressedData.size();
 	std::unique_ptr<uint8_t[]> data(new uint8_t[length]);
 	std::memcpy(data.get(), compressedData.data(), length);
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-for (uint8_t i = 0; i < length; i++)
-{
-	std::cout << "(" << std::setw(2) << std::setfill('0') << std::hex << (int)data[i] << ") ";
-	for (int j = 7; j >= 0; j--)
-		std::cout << ((data[i] & 1 << j) ? "1" : "0");
-	std::cout << " ";
-}
-std::cout << std::endl;
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	for (uint8_t i = 0; i < length; i++)
+	{
+		std::cout << "(" << std::setw(2) << std::setfill('0') << std::hex << (int)data[i] << ") ";
+		for (int j = 7; j >= 0; j--)
+			std::cout << ((data[i] & 1 << j) ? "1" : "0");
+		std::cout << " ";
+	}
+	std::cout << std::endl;
+	/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	bitStream.Append(std::move(data), static_cast<uint32_t>(length));
 
 	// Initialize DC coefficients for each component
@@ -444,7 +441,7 @@ std::cout << std::endl;
 	EntropyDecoder entropyDecoder(bitStream);
 	do
 	{
-		std::map<ColorComponent, std::vector<std::vector<int16_t>>> mcuBlocks; // component, list of blocks
+		std::map<ColorComponent, std::vector<std::vector<double>>> mcuBlocks; // component, list of blocks
 
 		for (const auto& component : this->components)
 		{
@@ -466,36 +463,119 @@ std::cout << std::endl;
 				const auto& quantTable = this->quantizationTables[static_cast<uint8_t>(quantTableType)];
 
 				// Dequantization - Elementwise multiplication of block by corresponding quantization table
-#if defined(_MSC_VER) && defined(_M_X64) // SIMD version using AVX2 (Intel x64)
-				for (int i = 0; i < 64; i += 32)
-				{
-					__m256i simdBlock = _mm256_loadu_si256(reinterpret_cast<const __m256i*>(&block[i]));
-					__m256i simdQuant = _mm256_loadu_si256(reinterpret_cast<const __m256i*>(&quantTable[i]));
-					__m256i simdMultipy = _mm256_mullo_epi16(simdBlock, simdQuant);
-					_mm256_storeu_si256(reinterpret_cast<__m256i*>(&block[i]), simdMultipy);
-				}
-#else
 				for (int i = 0; i < 64; i++)
 				{
 					block[i] = block[i] * quantTable[i];
 				}
-#endif
 
-				// TODO zig-zag reordering
-				// TODO apply IDCT
-				// TODO store result in mcuBlocks
+				// zig-zag reordering
+				int32_t reorderedBlock[64]; // tbd 8x8 or 64
+				for (int i = 0; i < 8; i++)
+				{
+					for (int j = 0; j < 8; j++)
+					{
+						reorderedBlock[zigZag[i][j]] = static_cast<uint8_t>(block[i * 8 + j]);
+					}
+				}
 
-for (auto x : block)
-std::cout << std::dec << x << " ";
-std::cout << std::endl;
+				std::cout << "----------------------------------------------------------------------------" << std::endl;
+				for (int i = 0; i < 64; i++)
+				{
+					std::cout << std::dec << (int)reorderedBlock[i] << " ";
+				}
+				std::cout << std::endl;
+
+				// Apply 2D inverse discrete cosine transform
+				mcuBlocks[static_cast<ColorComponent>(component.componentId)].push_back(IDCT2D::InverseDCT(&reorderedBlock[0]));
 			} // for scaling factor
 		} // for components
 
 		// TODO Upsampling if needed
 		// TODO store block data in image buffer tbd: ycbcr to rgb conversion ?
 
-		// TODO check if last MCU or end of bitstream
-		break;
+		std::vector<YCbCrPixel> mcuPixels(8 * this->maxSampFactorH * 8 * this->maxSampFactorV); // pixels for current MCU
+
+		// All decoded blocks for current MCU
+		for (const auto& component : this->components)
+		{
+			const auto& componentBlocks = mcuBlocks[static_cast<ColorComponent>(component.componentId)];
+			uint8_t blockIndex = 0;
+
+			// For each block in component (width and height sampling factor)
+			for (int a = 0; a < component.sampFactorH; a++)
+			{
+				for (int b = 0; b < component.sampFactorV; b++)
+				{
+
+					int samplingX = this->maxSampFactorV / component.sampFactorV;
+					int samplingY = this->maxSampFactorH / component.sampFactorH;
+
+					// For block size (8x8)
+					for (int by = 0; by < 8; by++) // y position in block
+					{
+						for (int bx = 0; bx < 8; bx++) // x position in block
+						{
+
+							// Compensate for sampling factors
+							for (int q = 0; q < samplingY; q++)
+							{
+								for (int r = 0; r < samplingX; r++)
+								{
+									int x = a * 8 + bx * samplingX + q;
+									int y = b * 8 + by * samplingY + r;
+									
+									// Set color
+									switch (static_cast<ColorComponent>(component.componentId))
+									{
+									case ColorComponent::Y:
+										mcuPixels[y * 8 * this->maxSampFactorV + x].y = static_cast<uint8_t>(componentBlocks[blockIndex][by * 8 + bx]);
+										break;
+									case ColorComponent::Cb:
+										mcuPixels[y * 8 * this->maxSampFactorV + x].Cb = static_cast<uint8_t>(componentBlocks[blockIndex][by * 8 + bx]);
+										break;
+									case ColorComponent::Cr:
+										mcuPixels[y * 8 * this->maxSampFactorV + x].Cr = static_cast<uint8_t>(componentBlocks[blockIndex][by * 8 + bx]);
+										break;
+									}
+
+								} // Sampline factor V (r)
+							} // Sampline factor H (q)
+
+						} // block width (bx)
+					} // block height (by)
+
+					blockIndex++;
+				}
+			}
+
+		} // Color component
+
+		// Move to image buffer
+		for (int y = 0; y < 8 * this->maxSampFactorH && this->mcuStartY + y < this->height; y++)
+		{
+			for (int x = 0; x < 8 * this->maxSampFactorV && this->mcuStartX + x < this->width; x++)
+			{
+				this->image[(this->mcuStartY + y) * this->width + (this->mcuStartX + x)] =
+					std::make_unique<Pixel>(mcuPixels[y * 8 * this->maxSampFactorV + x]);
+				auto rgb = this->image[(this->mcuStartY + y) * this->width + (this->mcuStartX + x)]->ToRGB();
+				std::cout << x << "," << y << ": " << (int)rgb.red << " " << (int)rgb.green << " " << (int)rgb.blue << std::endl;
+			}
+		}
+
+		// From top left to right, then down
+		// Move to next MCU in MCU row
+		this->mcuStartX += 8 * this->maxSampFactorV;
+		// End of row, move to next MCU row
+		if (this->mcuStartX >= this->width)
+		{
+			this->mcuStartX = 0;
+			this->mcuStartY += 8 * this->maxSampFactorH;
+			if (this->mcuStartY >= this->height)
+			{
+				break; // End of image
+			}
+		}
+
 	} while (true);
 
 	//	Sos:

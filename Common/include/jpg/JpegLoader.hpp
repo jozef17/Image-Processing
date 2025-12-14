@@ -97,6 +97,9 @@ private:
 	/// component ID, (DC table, AC table)
 	std::map <uint8_t, std::tuple<uint8_t, uint8_t>> componentHuffmanTables;
 
+	/// Start of next MCU
+	uint32_t mcuStartX = 0;
+	uint32_t mcuStartY = 0;
 };
 
 #endif /* JPEG_IMAGE_HPP__ */
