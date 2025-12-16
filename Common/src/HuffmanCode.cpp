@@ -38,7 +38,7 @@ void HuffmanCode::AsignCodes(std::vector<HuffmanCode>& codes)
 	std::cout << "[Code::AsignCodes]" << std::endl;
 	for (auto a : codes)
 	{
-		std::cout << "                   " << std::dec << (int)a.value << " " << std::dec << (int)a.length << "  ";
+		std::cout << "                   " << std::dec << (int)a.value << " " << std::dec << (int)a.length << "  (" << a.code <<") ";
 		for (int bit = 0; bit < a.length; bit++)
 		{
 			bool b = (a.code & 1 << bit) >> bit;

@@ -69,7 +69,9 @@ JpegLoader::JpegLoader(const std::string& filename)
 	// Clear temporary data
 	this->acTables.clear();
 	this->dcTables.clear();
+	this->quantizationTables.clear();
 	this->components.clear();
+	this->componentHuffmanTables.clear();
 }
 
 bool JpegLoader::IsJpegImage(const uint8_t* header, uint32_t size)
@@ -101,7 +103,7 @@ void JpegLoader::LoadImage(const std::string& filename)
 	}
 
 	// Load segments
-	Segment segment;
+	Segment segment = {};
 	while (file.good())
 	{
 		// Load segment marker
@@ -242,22 +244,21 @@ void JpegLoader::ProcessDqt(const  Segment& segment)
 	}
 
 	std::vector<uint16_t> quantTable(64);
-	// todo zig-zag reordering ?
 	std::copy(segment.data.begin() + 1, segment.data.begin() + 65, quantTable.begin());
 	this->quantizationTables[static_cast<uint8_t>(dqtType)] = quantTable;
 
-	/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-	std::cout << "DQT: " << (dqtType == DqtType::Chrominance ? "Chrominance" : "Luminance") << std::endl;
-	for (uint8_t a = 0; a < 8; a++)
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+std::cout << "DQT: " << (dqtType == DqtType::Chrominance ? "Chrominance" : "Luminance") << std::endl;
+for (uint8_t a = 0; a < 8; a++)
+{
+	for (uint8_t b = 0; b < 8; b++)
 	{
-		for (uint8_t b = 0; b < 8; b++)
-		{
-			std::cout << std::setw(2) << std::setfill('0') << std::hex << (int)(this->quantizationTables[(uint8_t)dqtType][zigZag[a][b]]) << " ";
-		}
-		std::cout << std::endl;
+		std::cout << std::setw(2) << std::setfill('0') << std::hex << (int)(this->quantizationTables[(uint8_t)dqtType][zigZag[a][b]]) << " ";
 	}
-	std::cout << "---------------------------------------------------------------------" << std::endl;
-	/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	std::cout << std::endl;
+}
+std::cout << "---------------------------------------------------------------------" << std::endl;
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 }
 
 // Start of frame - image metadata
@@ -300,20 +301,19 @@ void JpegLoader::ProcessSof(const  Segment& segment)
 			this->maxSampFactorV = info.sampFactorV;
 		}
 
-		//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-		ColorComponent component = (ColorComponent)segment.data[i * 3 + 6];
-		std::string componentName = "??";
-		if (component == ColorComponent::Y)
-			componentName = "Y ";
-		else if (component == ColorComponent::Cb)
-			componentName = "Cb";
-		else if (component == ColorComponent::Cr)
-			componentName = "Cr";
-
-		std::cout << componentName << ": " << "Sampling factors H: " << std::dec << (int)info.sampFactorH
-			<< ", V: " << std::dec << (int)info.sampFactorV << ", " << " Quantization table ID:"
-			<< std::dec << (int)info.quantTableId << std::endl;
-		//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+ColorComponent component = (ColorComponent)segment.data[i * 3 + 6];
+std::string componentName = "??";
+if (component == ColorComponent::Y)
+	componentName = "Y ";
+else if (component == ColorComponent::Cb)
+	componentName = "Cb";
+else if (component == ColorComponent::Cr)
+	componentName = "Cr";
+std::cout << componentName << ": " << "Sampling factors H: " << std::dec << (int)info.sampFactorH
+<< ", V: " << std::dec << (int)info.sampFactorV << ", " << " Quantization table ID:"
+<< std::dec << (int)info.quantTableId << std::endl;
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	}
 
 	//                Precision Height  Width   #comp Y                        Cb          Cr
@@ -338,17 +338,17 @@ void JpegLoader::ProcessSos(const Segment& segment)
 	{
 		uint8_t component = segment.data[index];
 
-		/////////////////////////////////////////////////////////////////////////////////////////////////////////////
-		std::string componentStr = "??";
-		if (segment.data[index] == 1)
-			componentStr = "Y ";
-		if (segment.data[index] == 2)
-			componentStr = "Cb";
-		if (segment.data[index] == 3)
-			componentStr = "Cr";
-		index++; // increment index to get value
-		std::cout << componentStr << " DC: " << ((int)segment.data[index] >> 4) << ", AC: " << (int)(segment.data[index] & 0x0f) << std::endl;
-		/////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////
+std::string componentStr = "??";
+if (segment.data[index] == 1)
+	componentStr = "Y ";
+if (segment.data[index] == 2)
+	componentStr = "Cb";
+if (segment.data[index] == 3)
+	componentStr = "Cr";
+index++; // increment index to get value
+std::cout << componentStr << " DC: " << ((int)segment.data[index] >> 4) << ", AC: " << (int)(segment.data[index] & 0x0f) << std::endl;
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 		componentHuffmanTables[component] = std::make_tuple(
 			segment.data[index] >> 4, // DC table
@@ -453,6 +453,13 @@ void JpegLoader::DecodeStream(std::vector<uint8_t> &compressedData)
 				const auto [dcTableId, acTableId] = this->componentHuffmanTables[component.componentId];
 				auto block = entropyDecoder.DecodeBlock(this->dcTables[dcTableId], this->acTables[dcTableId]);
 
+std::cout << "Decoded block:" << std::endl;
+for (int i = 0; i < 64; i++)
+{
+	std::cout << std::dec << (int)block[i] << " ";
+}
+std::cout << std::endl;
+
 				// Update DC coefficient
 				dcCoeficients[component.componentId] += block[0];
 				block[0] = dcCoeficients[component.componentId];
@@ -462,36 +469,46 @@ void JpegLoader::DecodeStream(std::vector<uint8_t> &compressedData)
 				// TODO add check for existence of quantization table
 				const auto& quantTable = this->quantizationTables[static_cast<uint8_t>(quantTableType)];
 
+
+std::cout << "Dequantized block:" << std::endl;
 				// Dequantization - Elementwise multiplication of block by corresponding quantization table
 				for (int i = 0; i < 64; i++)
 				{
 					block[i] = block[i] * quantTable[i];
+std::cout << std::dec << (int)block[i] << " ";
 				}
-
+std::cout << std::endl;
 				// zig-zag reordering
 				int32_t reorderedBlock[64]; // tbd 8x8 or 64
 				for (int i = 0; i < 8; i++)
 				{
 					for (int j = 0; j < 8; j++)
 					{
-						reorderedBlock[zigZag[i][j]] = static_cast<uint8_t>(block[i * 8 + j]);
+						reorderedBlock[zigZag[i][j]] = static_cast<int32_t>(block[i * 8 + j]);
 					}
 				}
 
-				std::cout << "----------------------------------------------------------------------------" << std::endl;
-				for (int i = 0; i < 64; i++)
-				{
-					std::cout << std::dec << (int)reorderedBlock[i] << " ";
-				}
-				std::cout << std::endl;
+/*
+std::cout << "----------------------------------------------------------------------------" << std::endl;
+for (int i = 0; i < 64; i++)
+{
+	std::cout << std::dec << (int)reorderedBlock[i] << " ";
+}
+std::cout << std::endl;//*/
 
 				// Apply 2D inverse discrete cosine transform
-				mcuBlocks[static_cast<ColorComponent>(component.componentId)].push_back(IDCT2D::InverseDCT(&reorderedBlock[0]));
+				// TODO: merge the below lines into one
+				auto mcuBlock = IDCT2D::InverseDCT(&reorderedBlock[0]);
+				mcuBlocks[static_cast<ColorComponent>(component.componentId)].push_back(mcuBlock);
+
+std::cout << "----------------------------------------------------------------------------" << std::endl;
+for (int i = 0; i < 64; i++)
+{
+	std::cout << std::dec << (int)(mcuBlock[i]) << " ";
+}
+std::cout << std::endl;
 			} // for scaling factor
 		} // for components
-
-		// TODO Upsampling if needed
-		// TODO store block data in image buffer tbd: ycbcr to rgb conversion ?
 
 		std::vector<YCbCrPixel> mcuPixels(8 * this->maxSampFactorH * 8 * this->maxSampFactorV); // pixels for current MCU
 
@@ -528,13 +545,13 @@ void JpegLoader::DecodeStream(std::vector<uint8_t> &compressedData)
 									switch (static_cast<ColorComponent>(component.componentId))
 									{
 									case ColorComponent::Y:
-										mcuPixels[y * 8 * this->maxSampFactorV + x].y = static_cast<uint8_t>(componentBlocks[blockIndex][by * 8 + bx]);
+										mcuPixels[y * 8 * this->maxSampFactorV + x].y = static_cast<uint8_t>(componentBlocks[blockIndex][by * 8 + bx]) +128;
 										break;
 									case ColorComponent::Cb:
-										mcuPixels[y * 8 * this->maxSampFactorV + x].Cb = static_cast<uint8_t>(componentBlocks[blockIndex][by * 8 + bx]);
+										mcuPixels[y * 8 * this->maxSampFactorV + x].Cb = static_cast<uint8_t>(componentBlocks[blockIndex][by * 8 + bx]) +128;
 										break;
 									case ColorComponent::Cr:
-										mcuPixels[y * 8 * this->maxSampFactorV + x].Cr = static_cast<uint8_t>(componentBlocks[blockIndex][by * 8 + bx]);
+										mcuPixels[y * 8 * this->maxSampFactorV + x].Cr = static_cast<uint8_t>(componentBlocks[blockIndex][by * 8 + bx]) +128;
 										break;
 									}
 
@@ -549,6 +566,14 @@ void JpegLoader::DecodeStream(std::vector<uint8_t> &compressedData)
 			}
 
 		} // Color component
+
+std::cout << "MCU Pixels (ycbcr):" << std::endl;
+for (int i = 0; i < mcuPixels.size(); i++)
+{
+	auto pixel = mcuPixels[i];
+	std::cout << "Pixel " << i << ": Y: " << std::dec << (int)pixel.y << ", Cb: " << (int)pixel.Cb << ", Cr: " << (int)pixel.Cr << std::endl;
+}
+std::cout << std::endl;
 
 		// Move to image buffer
 		for (int y = 0; y < 8 * this->maxSampFactorH && this->mcuStartY + y < this->height; y++)

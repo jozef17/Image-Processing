@@ -1,7 +1,9 @@
 # Image Processing
 - CMake based projects related to Image Processing
 - Written in C++17
-- Parallelised using [std::thread](https://en.cppreference.com/w/cpp/thread/thread) and / or [Nvidia CUDA](https://developer.nvidia.com/cuda-zone)
+- Parallelised using:
+    - [std::thread](https://en.cppreference.com/w/cpp/thread/thread)
+    - [Nvidia CUDA](https://developer.nvidia.com/cuda-zone)
 - Unit tests written for Google Test framework
 - All project support following input image formats:
     - RAW
