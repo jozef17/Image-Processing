@@ -7,7 +7,7 @@
 
 #include <vector>
 
-TEST(EntropyDecoder, DecodeError)
+TEST(EntropyDecoderTest, DecodeError)
 {
 	// Setup inputs
 	std::vector<HuffmanCode> codes = {{ 0, 5, 4}};
@@ -25,7 +25,7 @@ TEST(EntropyDecoder, DecodeError)
 }
 
 /// Test data were sourced from real image (10x10 pixels white) cut to single 8x8 block
-TEST(EntropyDecoder, Decode1)
+TEST(EntropyDecoderTest, Decode1)
 {
 	// Setup inputs
 	std::vector<HuffmanCode> dcCodes = {{9, 63, 7}};
