@@ -1,6 +1,7 @@
 #include "Pixel.hpp"
 
 #include <cmath>
+#include <algorithm>
 
 Pixel::Pixel() : Pixel(RGBPixel{ 0,0,0 }) {}
 
@@ -35,7 +36,12 @@ RGBPixel Pixel::ToRGB()
 	auto red = this->pixel.ycbcrPixel.y + 1.402 * (this->pixel.ycbcrPixel.Cr - 128.0);
 	auto green = this->pixel.ycbcrPixel.y - 0.344136 * (this->pixel.ycbcrPixel.Cb - 128.0) - 0.714136 * (this->pixel.ycbcrPixel.Cr - 128.0);
 	auto blue = this->pixel.ycbcrPixel.y + 1.772 * (this->pixel.ycbcrPixel.Cb - 128.0);
-	return RGBPixel{ (uint8_t)std::round(red), (uint8_t)std::round(green), (uint8_t)std::round(blue) };
+
+	red = std::clamp(std::round(red), 0.0, 255.0);
+	green = std::clamp(std::round(green), 0.0, 255.0);
+	blue = std::clamp(std::round(blue), 0.0, 255.0);
+
+	return RGBPixel{ static_cast<uint8_t>(red), static_cast<uint8_t>(green), static_cast<uint8_t>(blue) };
 } 
 
 RGBAPixel Pixel::ToRGBA()
@@ -64,8 +70,13 @@ YCbCrPixel Pixel::ToYCbCr()
 	}
 	
 	auto rgb = ToRGB();
-	auto y = 0.299 * rgb.red + 0.587 * rgb.green + 0.114 * rgb.blue;
+	auto y = 0.299 * rgb.red + 0.587 * rgb.green + 0.114 * rgb.blue;	
 	auto cb = 128.0 - 0.168736 * rgb.red - 0.331264 * rgb.green + 0.5 * rgb.blue;
 	auto cr = 128.0 + 0.5 * rgb.red - 0.418688 * rgb.green - 0.081312 * rgb.blue;
-	return YCbCrPixel{ (uint8_t)std::round(y), (uint8_t)std::round(cb), (uint8_t)std::round(cr) };
+
+	y = std::clamp(std::round(y), 0.0, 255.0);
+	cb = std::clamp(std::round(cb), 0.0, 255.0);
+	cr = std::clamp(std::round(cr), 0.0, 255.0);
+
+	return YCbCrPixel{ static_cast<uint8_t>(y), static_cast<uint8_t>(cb), static_cast<uint8_t>(cr) };
 }
