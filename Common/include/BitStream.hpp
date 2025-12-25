@@ -7,6 +7,8 @@
 #include <memory>
 #include <cstdint>
 
+#include "Exception.hpp"
+
 #ifdef ENABLE_LOGS
 #include <string>
 #endif
@@ -59,6 +61,12 @@ private:
 	std::vector<std::unique_ptr<uint8_t[]>> data;
 	std::vector<uint32_t> lengths;
 
+};
+
+class EndOfStreamException : public Exception
+{
+public:
+	EndOfStreamException() : Exception("End of bitstream") {}
 };
 
 #endif /* BIT_STREAM_HPP__ */
