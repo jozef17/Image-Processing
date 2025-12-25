@@ -35,14 +35,14 @@ enum class ColorComponent : uint8_t
 	Cr = 3
 };
 
-static constexpr uint8_t zigZag[8][8] = {{ 0, 1, 5, 6,14,15,27,28},
-										 { 2, 4, 7,13,16,26,29,42},
-										 { 3, 8,12,17,25,30,41,43},
-										 { 9,11,18,24,31,40,44,53},
-										 {10,19,23,32,39,45,52,54},
-										 {20,22,33,38,46,51,55,60},
-										 {21,34,37,47,50,56,59,61},
-										 {35,36,48,49,57,58,62,63} };
+static constexpr uint8_t zigZag[64] = {0,  1, 5, 6,14,15,27,28,
+									   2,  4, 7,13,16,26,29,42,
+									   3,  8,12,17,25,30,41,43,
+									   9, 11,18,24,31,40,44,53,
+									   10,19,23,32,39,45,52,54,
+									   20,22,33,38,46,51,55,60,
+									   21,34,37,47,50,56,59,61,
+									   35,36,48,49,57,58,62,63 };
 
 struct Segment
 {
@@ -104,7 +104,7 @@ void JpegLoader::LoadImage(const std::string& filename)
 
 	// Load segments
 	Segment segment = {};
-	while (file.good())
+	while (file)
 	{
 		// Load segment marker
 		file.read((char*)&segment.marker, 2);
@@ -146,14 +146,15 @@ void JpegLoader::LoadImage(const std::string& filename)
 
 			while (file.good())
 			{
-				file >> current;
+				file.read((char*)&current, 1);
 				if (current != 0xff)
 				{
 					compressedData.push_back(current);
 					continue;
 				}
 
-				file >> current;
+				// Get next byte after 0xff
+				file.read((char*)&current, 1);
 				if (current == 0x00)
 				{
 					// 0xff escaped - add only 0xff
@@ -248,13 +249,13 @@ void JpegLoader::ProcessDqt(const  Segment& segment)
 	this->quantizationTables[static_cast<uint8_t>(dqtType)] = quantTable;
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-std::cout << "DQT: " << (dqtType == DqtType::Chrominance ? "Chrominance" : "Luminance") << std::endl;
-for (uint8_t a = 0; a < 8; a++)
+//std::cout << "DQT (not in zig zag): " << (dqtType == DqtType::Chrominance ? "Chrominance" : "Luminance") << std::endl;
+std::cout << "DQT (in zig zag): " << (dqtType == DqtType::Chrominance ? "Chrominance" : "Luminance") << std::endl;
+for (uint8_t b = 0; b < 64; b++)
 {
-	for (uint8_t b = 0; b < 8; b++)
-	{
-		std::cout << std::setw(2) << std::setfill('0') << std::hex << (int)(this->quantizationTables[(uint8_t)dqtType][zigZag[a][b]]) << " ";
-	}
+//std::cout << std::setw(2) << std::setfill('0') << std::hex << (int)(this->quantizationTables[(uint8_t)dqtType][zigZag[b]]) << " ";
+std::cout << std::setw(2) << std::setfill('0') << std::hex << (int)this->quantizationTables[(uint8_t)dqtType][b] << " ";
+if (b % 8 == 7)
 	std::cout << std::endl;
 }
 std::cout << "---------------------------------------------------------------------" << std::endl;
@@ -276,8 +277,8 @@ void JpegLoader::ProcessSof(const  Segment& segment)
 		throw RuntimeException("Unsupported component count: " + std::to_string((int)segment.data[5]) + "!");
 	}
 
-	this->width = ((int)segment.data[1] << 8 | (int)segment.data[2]);
-	this->height = ((int)segment.data[3] << 8 | (int)segment.data[4]);
+	this->height= ((int)segment.data[1] << 8 | (int)segment.data[2]);
+	this->width = ((int)segment.data[3] << 8 | (int)segment.data[4]);
 	this->image = std::unique_ptr<std::unique_ptr<Pixel>[]>(new std::unique_ptr<Pixel>[this->width * this->height]);
 
 	for (uint8_t i = 0; i < segment.data[5]; i++)
@@ -319,9 +320,6 @@ std::cout << componentName << ": " << "Sampling factors H: " << std::dec << (int
 	//                Precision Height  Width   #comp Y                        Cb          Cr
 	//												  ID  SampFactor  QTableID
 	//	ff c0, 15(15): 08        00 64   00 64   03    01 22          00          02 11 01    03 11 01
-	//  ff c0, 15(15): 08        00 0a   00 0a   03    01 22          00          02 11 01    03 11 01
-	//  ff c2, 15(15): 08        04 38   04 38   03    01 22          00          02 11 01    03 11 01
-	//  ff c2, 15(15): 08        04 a9   04 74   03    01 22          00          02 11 01    03 11 01
 }
 
 // Start of scan - mapping between components and huffman tables
@@ -469,24 +467,26 @@ std::cout << std::endl;
 				// TODO add check for existence of quantization table
 				const auto& quantTable = this->quantizationTables[static_cast<uint8_t>(quantTableType)];
 
-
-std::cout << "Dequantized block:" << std::endl;
 				// Dequantization - Elementwise multiplication of block by corresponding quantization table
+				for (int index = 0; index < 64; index++)
+				{
+					block[index] = block[index] * quantTable[index];
+				}
+
+/*
+std::cout << "Dequantized block:" << std::endl;
 				for (int i = 0; i < 64; i++)
 				{
-					block[i] = block[i] * quantTable[i];
 std::cout << std::dec << (int)block[i] << " ";
 				}
-std::cout << std::endl;
+std::cout << std::endl;//*/
 				// zig-zag reordering
 				int32_t reorderedBlock[64]; // tbd 8x8 or 64
-				for (int i = 0; i < 8; i++)
+				for (int index = 0; index < 64; index++)
 				{
-					for (int j = 0; j < 8; j++)
-					{
-						reorderedBlock[zigZag[i][j]] = static_cast<int32_t>(block[i * 8 + j]);
+					reorderedBlock[zigZag[index]] = block[index];
 					}
-				}
+				block.clear(); // No longer needed - clean up
 
 /*
 std::cout << "----------------------------------------------------------------------------" << std::endl;
@@ -566,7 +566,7 @@ std::cout << std::endl;
 			}
 
 		} // Color component
-
+		mcuBlocks.clear(); // No longer needed - clean up
 std::cout << "MCU Pixels (ycbcr):" << std::endl;
 for (int i = 0; i < mcuPixels.size(); i++)
 {
@@ -583,7 +583,9 @@ std::cout << std::endl;
 				this->image[(this->mcuStartY + y) * this->width + (this->mcuStartX + x)] =
 					std::make_unique<Pixel>(mcuPixels[y * 8 * this->maxSampFactorV + x]);
 				auto rgb = this->image[(this->mcuStartY + y) * this->width + (this->mcuStartX + x)]->ToRGB();
-				std::cout << x << "," << y << ": " << (int)rgb.red << " " << (int)rgb.green << " " << (int)rgb.blue << std::endl;
+				auto pixel = mcuPixels[y * 8 * this->maxSampFactorV + x];
+				std::cout << x << "," << y << ": " << (int)pixel.y << " " << (int)pixel.Cb << " " << (int)pixel.Cr << " -> "
+<< (int)rgb.red << " " << (int)rgb.green << " " << (int)rgb.blue << std::endl;
 			}
 		}
 
@@ -600,14 +602,5 @@ std::cout << std::endl;
 				break; // End of image
 			}
 		}
-
-	} while (true);
-
-	//	Sos:
-	//	ff da, 10(00 c) : 03 01 00 02 11 03 11   00 3f 00   fd fc a2 8a 28 03
-	// component ID, (DC table, AC table)
-	//		Y  DC : 0, AC : 0
-	//		Cb DC : 1, AC : 1
-	//		Cr DC : 1, AC : 1
-	// 11111101 11111100 10100010 10001010 00101000 00000011 ok
+	}
 }
