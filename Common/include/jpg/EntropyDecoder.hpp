@@ -21,7 +21,7 @@ public:
 	/// </summary>
 	/// <param name="component">Color component to be decoded</param>
 	/// <returns>Decoded 8x8 block of data. Note: First Element contains decoded DC to be updated according needs</returns>
-	std::vector<int16_t> DecodeBlock(const std::vector<HuffmanCode>& dcTable, const std::vector<HuffmanCode>& acTable);
+	std::vector<int32_t> DecodeBlock(const std::vector<HuffmanCode>& dcTable, const std::vector<HuffmanCode>& acTable);
 
 private:
 	/// <summary>
@@ -29,14 +29,14 @@ private:
 	/// </summary>
 	/// <param name="huffmanTable">Huffman Table to be used for decoding</param>
 	/// <returns>Decoded value, an exception is thrown when decoding fails</returns>
-	uint16_t DecodeValue(const std::vector<HuffmanCode>& huffmanTable);
+	uint8_t DecodeValue(const std::vector<HuffmanCode>& huffmanTable);
 
 	/// <summary>
 	/// Reads given number of DC bits from the stream and converts them to signed integer
 	/// </summary>
 	/// <param name="size">Number of bits to read</param>
 	/// <returns></returns>
-	int16_t Read(uint16_t size);
+	int32_t Read(uint16_t size);
 
 	BitStream& bitStream;
 };

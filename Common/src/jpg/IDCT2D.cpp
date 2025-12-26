@@ -7,31 +7,27 @@ std::vector<double> IDCT2D::InverseDCT(const int32_t* inputBlock)
 {
 	std::vector<double> result(64);
 	
-	constexpr uint8_t M = 8;
-	constexpr uint8_t N = 8;
-	static const auto f = 2.0 / std::sqrt(static_cast<double>(M * N)); // 2 / (sqrt(M + N))
-
 	// Calculate IDCT for 8x8 block
 	for (uint8_t y = 0; y < 8; y++)
 	{
 		for (uint8_t x = 0; x < 8; x++)
 		{
 			// Perform IDCT calculation for element x,y
-			double value = 0.0;
+			double sum = 0.0;
 			
-			for (uint8_t m = 0; m < M; m++) // y (row)
+			for (uint8_t m = 0; m < 8; m++) // y (row)
 			{
-				for (uint8_t n = 0; n < N; n++) // x (column)
+				for (uint8_t n = 0; n < 8; n++) // x (column)
 				{
-					const auto cm = m == 0 ? 1.0 / std::sqrt(2.0) : 1.0;
-					const auto cn = n == 0 ? 1.0 / std::sqrt(2.0) : 1.0;
-					value += cm * cn * inputBlock[m * 8 + n] *
-							 std::cos(((2 * y + 1) * m * PI) / (2 * M)) *
-							 std::cos(((2 * x + 1) * n * PI) / (2 * N));
+					auto cm = m == 0 ? (1.0 / std::sqrt(2.0)) : 1.0;
+					auto cn = n == 0 ? (1.0 / std::sqrt(2.0)) : 1.0;
+					sum += cm * cn * static_cast<double>(inputBlock[m * 8 + n]) *
+							 std::cos(((2.0 * static_cast<double>(y) + 1) * static_cast<double>(m) * PI) / 16.0) *
+							 std::cos(((2.0 * static_cast<double>(x) + 1) * static_cast<double>(n) * PI) / 16.0);
 				}
 			}
 
-			result[y * 8 + x] = f * value;
+			result[y * 8 + x] = 0.25 * sum;
 		}
 	}
 	return result;

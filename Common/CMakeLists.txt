@@ -44,6 +44,7 @@ set(INCLUDES
    include/gif/LZW.hpp
    include/jpg/EntropyDecoder.hpp
    include/jpg/IDCT2D.hpp
+   include/jpg/JpegException.hpp
    include/jpg/JpegLoader.hpp
    include/png/Adler32.hpp
    include/png/BlockDecoder.hpp

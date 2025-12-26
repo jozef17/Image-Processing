@@ -1,12 +1,13 @@
 #include "jpg/JpegLoader.hpp"
 #include "jpg/IDCT2D.hpp"
 #include "jpg/EntropyDecoder.hpp"
-#include "Exception.hpp"
+#include "jpg/JpegException.hpp"
 #include "BitStream.hpp"
 
 #include <fstream>
 #include <sstream>
 #include <cstdint>
+#include <algorithm>
 
 // TMP ////////////////////////////////////////////////////
 #include <iostream>
@@ -80,7 +81,7 @@ bool JpegLoader::IsJpegImage(const uint8_t* header, uint32_t size)
 	const uint8_t jpegHeader[3] = { 0xff, 0xd8, 0xff };
 	if (size < 3)
 	{
-		throw RuntimeException("Not enough data to asses the file (jpg)");
+		throw JpegException("Not enough data to asses the file (jpg)");
 	}
 	return std::memcmp(header, jpegHeader, 3) == 0;
 }
@@ -90,7 +91,7 @@ void JpegLoader::LoadImage(const std::string& filename)
 	std::ifstream file(filename, std::ios::binary);
 	if (!file.good())
 	{
-		throw std::runtime_error("Failed to open file " + filename + ": " + strerror(errno));
+		throw JpegException("Failed to open file " + filename + ": " + strerror(errno));
 	}
 
 	uint8_t buffer[128];
@@ -99,7 +100,7 @@ void JpegLoader::LoadImage(const std::string& filename)
 	file.read((char*)&buffer, 2);
 	if (buffer[0] != 0xff && buffer[1] != 0xd8)
 	{
-		throw std::runtime_error("Not jpeg image!");
+		throw JpegException("Not jpeg image!");
 	}
 
 	// Load segments
@@ -112,7 +113,7 @@ void JpegLoader::LoadImage(const std::string& filename)
 		{
 			std::stringstream ss;
 			ss << "Was expecting start of segment marker, instead got " << std::setw(2) << std::setfill('0') << std::hex << (int)segment.marker[0] << "!";
-			throw std::runtime_error(ss.str());
+			throw JpegException(ss.str());
 		}
 
 		// End Of Image (EOI)
@@ -129,14 +130,15 @@ void JpegLoader::LoadImage(const std::string& filename)
 		auto size = segment.size;
 		do
 		{
-			auto toRead = size < sizeof(buffer) ? size : sizeof(buffer);
-			size -= static_cast<uint16_t>(toRead);
+			auto toRead = std::min(size, static_cast<uint16_t>(sizeof(buffer)));
+			size -= toRead;
 
 			file.read((char*)&buffer, toRead);
 			segment.data.insert(segment.data.end(), buffer, buffer + toRead);
 		} while (size > 0);
 
 		ProcessSegment(segment);
+		segment.data.clear();
 
 		// Load compressed data - after SoS marker
 		if (segment.marker[1] == 0xda)
@@ -163,6 +165,7 @@ void JpegLoader::LoadImage(const std::string& filename)
 				}
 
 				// Marker detected
+std::cout << "Marker detected: " << std::setw(2) << std::setfill('0') << std::hex << (int)current << std::endl;
 				DecodeStream(compressedData);
 				compressedData.clear();
 
@@ -178,11 +181,9 @@ void JpegLoader::LoadImage(const std::string& filename)
 					break;
 				}
 			}
+		} // bitstream loading and processing
+	}// while
 		}
-
-		segment.data.clear();
-	}
-}
 
 void JpegLoader::ProcessSegment(const Segment& segment)
 {
@@ -207,10 +208,10 @@ void JpegLoader::ProcessSegment(const Segment& segment)
 		ProcessDht(segment);
 		break;
 	case 0xc2: // "Start of frame" (SOF) - progresive DCT
-		throw RuntimeException("Progressive DCT not supported!");
+		throw JpegException("Progressive DCT not supported!");
 	default:
 		LogSegment(segment);
-		throw RuntimeException("Unsupported segment " + std::to_string((int)segment.marker[1]) + "!");
+		throw JpegException("Unsupported segment " + std::to_string((int)segment.marker[1]) + "!");
 	}
 }
 
@@ -221,13 +222,13 @@ void JpegLoader::ProcessDqt(const  Segment& segment)
 	// Supports only 8bit mode (1st half (msb) of 1st byte determines 8 (0) or 16 (!0) bit mode)
 	if (segment.data[0] > 0x0f)
 	{
-		throw RuntimeException("Unsupported quantization table type!");
+		throw JpegException("Unsupported quantization table type!");
 	}
 
 	// Todo check if needed to be reworked
 	if (segment.size > 65)
 	{
-		throw RuntimeException("Only one quantization table in DQT supported!");
+		throw JpegException("Only one quantization table in DQT supported!");
 	}
 
 	DqtType dqtType = DqtType::Invalid;
@@ -241,7 +242,7 @@ void JpegLoader::ProcessDqt(const  Segment& segment)
 	}
 	else
 	{
-		throw std::runtime_error("Unsupported quantization table type (dqt):" + std::to_string((int)segment.data[0] & 0x0f));
+		throw JpegException("Unsupported quantization table type (dqt):" + std::to_string((int)segment.data[0] & 0x0f));
 	}
 
 	std::vector<uint16_t> quantTable(64);
@@ -268,13 +269,13 @@ void JpegLoader::ProcessSof(const  Segment& segment)
 {
 	if (segment.data[0] != 8)
 	{
-		throw RuntimeException("Unsupported precision: " + std::to_string((int)segment.data[0]) + "!");
+		throw JpegException("Unsupported precision: " + std::to_string((int)segment.data[0]) + "!");
 	}
 
 	// YCbCr only
 	if (segment.data[5] != 3)
 	{
-		throw RuntimeException("Unsupported component count: " + std::to_string((int)segment.data[5]) + "!");
+		throw JpegException("Unsupported component count: " + std::to_string((int)segment.data[5]) + "!");
 	}
 
 	this->height= ((int)segment.data[1] << 8 | (int)segment.data[2]);
@@ -303,6 +304,8 @@ void JpegLoader::ProcessSof(const  Segment& segment)
 		}
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+std::cout << "Sof Component Info:" << std::endl;
+std::cout << "Width " << std::dec << this->width << ", Height " << std::dec << this->height << std::endl;
 ColorComponent component = (ColorComponent)segment.data[i * 3 + 6];
 std::string componentName = "??";
 if (component == ColorComponent::Y)
@@ -316,10 +319,6 @@ std::cout << componentName << ": " << "Sampling factors H: " << std::dec << (int
 << std::dec << (int)info.quantTableId << std::endl;
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	}
-
-	//                Precision Height  Width   #comp Y                        Cb          Cr
-	//												  ID  SampFactor  QTableID
-	//	ff c0, 15(15): 08        00 64   00 64   03    01 22          00          02 11 01    03 11 01
 }
 
 // Start of scan - mapping between components and huffman tables
@@ -335,21 +334,17 @@ void JpegLoader::ProcessSos(const Segment& segment)
 	for (uint8_t i = 0; i < segment.data[0]; i++)
 	{
 		uint8_t component = segment.data[index];
-
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////
-std::string componentStr = "??";
-if (segment.data[index] == 1)
-	componentStr = "Y ";
+std::string componentStr = "Y ";
 if (segment.data[index] == 2)
 	componentStr = "Cb";
 if (segment.data[index] == 3)
 	componentStr = "Cr";
-index++; // increment index to get value
-std::cout << componentStr << " DC: " << ((int)segment.data[index] >> 4) << ", AC: " << (int)(segment.data[index] & 0x0f) << std::endl;
+std::cout << componentStr << " DC: " << ((int)segment.data[index+1] >> 4) << ", AC: " << (int)(segment.data[index+1] & 0x0f) << std::endl;
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
+		index++; // increment index to get value
 		componentHuffmanTables[component] = std::make_tuple(
-			segment.data[index] >> 4, // DC table
+			segment.data[index] >> 4,  // DC table
 			segment.data[index] & 0x0f // AC table
 		);
 		index++; // increment for next loop
@@ -360,31 +355,30 @@ std::cout << componentStr << " DC: " << ((int)segment.data[index] >> 4) << ", AC
 // Table class - DC/AC (1/2 byte), Table ID (1/2 byte), 16 bytes of code lengths, list of codes
 void JpegLoader::ProcessDht(const Segment& segment)
 {
-	std::cout << "Dht:" << std::endl;
-
 	// last three bits has to be 0
 	if (segment.data[0] >> 5)
 	{
-		throw RuntimeException("Invalid DHT data");
+		throw JpegException("Invalid DHT data");
 	}
 
 	// htNumber = first half of byte
 	auto htNumber = segment.data[0] & 0x0f;
 	if (htNumber > 3)
 	{
-		throw RuntimeException("Invalid htNumber " + std::to_string(htNumber));
+		throw JpegException("Invalid htNumber " + std::to_string(htNumber));
 	}
 
 	// list of code lengths and codes
 	std::vector<HuffmanCode> codes;
-	uint32_t offset = 17; // index of next code
+	uint32_t nextIndex = 17; // index of next code
+	// For all huffman code lengths (1 - 16)
 	for (uint8_t i = 1; i <= 16; i++)
 	{
-		// Add all codes of length i to the list
+		// Add all codes of the length i to the list
 		for (uint8_t j = 0; j < segment.data[i]; j++)
 		{
 			// value, code (0 - to be assigned), length
-			HuffmanCode entry = { segment.data[offset++], 0, i };
+			HuffmanCode entry = { segment.data[nextIndex++], 0, i };
 			codes.push_back(entry);
 		}
 	}
@@ -392,7 +386,9 @@ void JpegLoader::ProcessDht(const Segment& segment)
 	// type of HT, 0 = DC table, 1 = AC table
 	auto htType = segment.data[0] >> 4;
 
+std::cout << "Dht:" << std::endl;
 	std::cout << (htType == 0 ? "DC" : "AC") << " table " << std::dec << (int)htNumber << std::endl;
+std::cout << std::endl;
 	// Generate codes for code / lengths
 	HuffmanCode::AsignCodes(codes);
 
@@ -407,7 +403,6 @@ void JpegLoader::ProcessDht(const Segment& segment)
 	{
 		this->acTables[htNumber] = codes;
 	}
-	std::cout << std::endl;
 }
 
 void JpegLoader::DecodeStream(std::vector<uint8_t> &compressedData)
@@ -420,7 +415,7 @@ void JpegLoader::DecodeStream(std::vector<uint8_t> &compressedData)
 	//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	for (uint8_t i = 0; i < length; i++)
 	{
-		std::cout << "(" << std::setw(2) << std::setfill('0') << std::hex << (int)data[i] << ") ";
+//	std::cout << "(" << std::setw(2) << std::setfill('0') << std::hex << (int)data[i] << ") ";
 		for (int j = 7; j >= 0; j--)
 			std::cout << ((data[i] & 1 << j) ? "1" : "0");
 		std::cout << " ";
@@ -430,37 +425,43 @@ void JpegLoader::DecodeStream(std::vector<uint8_t> &compressedData)
 	bitStream.Append(std::move(data), static_cast<uint32_t>(length));
 
 	// Initialize DC coefficients for each component
-	std::map<uint8_t, int> dcCoeficients; // component ID, last DC coefficient
+	std::map<uint8_t, int32_t> dcCoeficients; // component ID, last DC coefficient
 	for (const auto& comp : this->components)
 	{
 		dcCoeficients[comp.componentId] = 0;
 	}
 
 	EntropyDecoder entropyDecoder(bitStream);
-	do
+	while (true)
 	{
 		std::map<ColorComponent, std::vector<std::vector<double>>> mcuBlocks; // component, list of blocks
 
 		for (const auto& component : this->components)
 		{
-			for (int y = 0; y < component.sampFactorH * component.sampFactorV; y++)
+			// Decode appropriate number of blocks for given component, based on scaling factors (chroma upsamling)
+			for (uint8_t scale = 0; scale < component.sampFactorH * component.sampFactorV; scale++)
 			{
 				std::cout << "Component ID: " << std::dec << (int)component.componentId << std::endl;
 
 				// Decode block
 				const auto [dcTableId, acTableId] = this->componentHuffmanTables[component.componentId];
+std::cout << "Decoding block " << (int)component.componentId << " #" << (int)scale << " " << " dcTable: " << std::dec << (int)dcTableId << ", acTable: " << std::dec << (int)acTableId << std::endl;
 				auto block = entropyDecoder.DecodeBlock(this->dcTables[dcTableId], this->acTables[dcTableId]);
+std::cout << "DC acc " << dcCoeficients[component.componentId] << ", decoded DC " << block[0] << " new DC "<< (dcCoeficients[component.componentId] + block[0]) << std::endl;
 
+				// Update DC coefficient
+				dcCoeficients[component.componentId] += block[0];
+				block[0] = dcCoeficients[component.componentId];
+
+//if(static_cast<ColorComponent>(component.componentId) == ColorComponent::Y)
+{ 
 std::cout << "Decoded block:" << std::endl;
 for (int i = 0; i < 64; i++)
 {
 	std::cout << std::dec << (int)block[i] << " ";
 }
 std::cout << std::endl;
-
-				// Update DC coefficient
-				dcCoeficients[component.componentId] += block[0];
-				block[0] = dcCoeficients[component.componentId];
+}//*/
 
 				// Get quantization table for component
 				auto quantTableType = static_cast<ColorComponent>(component.componentId) == ColorComponent::Y ? DqtType::Luminance : DqtType::Chrominance;
@@ -488,8 +489,7 @@ std::cout << std::endl;//*/
 					}
 				block.clear(); // No longer needed - clean up
 
-/*
-std::cout << "----------------------------------------------------------------------------" << std::endl;
+std::cout << "Reordered:" << std::endl;
 for (int i = 0; i < 64; i++)
 {
 	std::cout << std::dec << (int)reorderedBlock[i] << " ";
@@ -501,7 +501,8 @@ std::cout << std::endl;//*/
 				auto mcuBlock = IDCT2D::InverseDCT(&reorderedBlock[0]);
 				mcuBlocks[static_cast<ColorComponent>(component.componentId)].push_back(mcuBlock);
 
-std::cout << "----------------------------------------------------------------------------" << std::endl;
+//*
+std::cout << "MCU Block after IDCT:" << std::endl;
 for (int i = 0; i < 64; i++)
 {
 	std::cout << std::dec << (int)(mcuBlock[i]) << " ";
@@ -542,19 +543,21 @@ std::cout << std::endl;
 									int y = b * 8 + by * samplingY + r;
 									
 									// Set color
+									auto value = componentBlocks[blockIndex][by * 8 + bx] + 128;
+									value = value < 0 ? 0 : (value > 255 ? 255 : value);
+
 									switch (static_cast<ColorComponent>(component.componentId))
 									{
 									case ColorComponent::Y:
-										mcuPixels[y * 8 * this->maxSampFactorV + x].y = static_cast<uint8_t>(componentBlocks[blockIndex][by * 8 + bx]) +128;
+										mcuPixels[y * 8 * this->maxSampFactorV + x].y = static_cast<uint8_t>(value);
 										break;
 									case ColorComponent::Cb:
-										mcuPixels[y * 8 * this->maxSampFactorV + x].Cb = static_cast<uint8_t>(componentBlocks[blockIndex][by * 8 + bx]) +128;
+										mcuPixels[y * 8 * this->maxSampFactorV + x].Cb = static_cast<uint8_t>(value);
 										break;
 									case ColorComponent::Cr:
-										mcuPixels[y * 8 * this->maxSampFactorV + x].Cr = static_cast<uint8_t>(componentBlocks[blockIndex][by * 8 + bx]) +128;
+										mcuPixels[y * 8 * this->maxSampFactorV + x].Cr = static_cast<uint8_t>(value);
 										break;
 									}
-
 								} // Sampline factor V (r)
 							} // Sampline factor H (q)
 
@@ -567,13 +570,14 @@ std::cout << std::endl;
 
 		} // Color component
 		mcuBlocks.clear(); // No longer needed - clean up
+/*
 std::cout << "MCU Pixels (ycbcr):" << std::endl;
 for (int i = 0; i < mcuPixels.size(); i++)
 {
 	auto pixel = mcuPixels[i];
 	std::cout << "Pixel " << i << ": Y: " << std::dec << (int)pixel.y << ", Cb: " << (int)pixel.Cb << ", Cr: " << (int)pixel.Cr << std::endl;
 }
-std::cout << std::endl;
+std::cout << std::endl;//*/
 
 		// Move to image buffer
 		for (int y = 0; y < 8 * this->maxSampFactorH && this->mcuStartY + y < this->height; y++)
