@@ -1,7 +1,7 @@
 #include "jpg/JpegLoader.hpp"
 #include <iostream>
-#include <fstream>
-#include <iomanip>
+//#include <fstream>
+//#include <iomanip>
 #include "Window.hpp"
 
 int main(int argc, char* argv[])
@@ -12,7 +12,7 @@ int main(int argc, char* argv[])
 //	filename = "D:\\Users\\User\\Pictures\\white10x10.jpg";
 //	filename = "D:\\Users\\User\\Pictures\\8x8.jpg";
 //	filename = "D:\\Users\\User\\Pictures\\8x8_1.jpg";
-
+	/*
 	{
 		std::ifstream file(filename, std::ios::binary);
 		uint8_t	buffer[128];
@@ -27,7 +27,7 @@ int main(int argc, char* argv[])
 		}
 		std::cout << std::endl;
 		std::cout << std::endl;
-	}
+	}//*/
 
 	try
 	{

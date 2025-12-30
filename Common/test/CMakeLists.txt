@@ -5,10 +5,10 @@ set(SOURCES
 	BitStreamTest.cpp
 	CommandLineParserTest.cpp
 	EntropyDecoderTest.cpp
-	IDCT2DTest.cpp
 	ImageLoaderTest.cpp
 	ImageTest.cpp
 	JpegLoaderTest.cpp
+	JpegUtilsTest.cpp
 	PixelTest.cpp
 	PngLoaderTest.cpp
 	RAWLoaderTest.cpp

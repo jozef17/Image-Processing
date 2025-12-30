@@ -32,7 +32,7 @@ public:
 	/// <returns></returns>
 	static bool IsJpegImage(const uint8_t* header, uint32_t size);
 
-	// TODO add load image
+	// TODO add load image function
 
 private:
 
@@ -43,7 +43,6 @@ private:
 		uint8_t sampFactorV;
 		uint8_t quantTableId;
 	};
-
 
 	void LoadImage(const std::string& filename);
 
@@ -76,6 +75,7 @@ private:
 
 	void DecodeStream(std::vector<uint8_t> &compressedData);
 
+	std::vector<uint8_t> PrepareComponent(const std::vector<std::vector<double>>& component);
 
 	/// Huffmann tables
 	/// key: table ID, value: list of codes
@@ -84,7 +84,7 @@ private:
 
 	/// Quantization tables
 	/// key table type (chrominance / luminance), value: quantization data
-	std::map<uint8_t, std::vector<uint16_t>> quantizationTables;
+	std::map<uint8_t, std::vector<uint8_t>> quantizationTables;
 
 	/// Subsampling (& quantization table ID)
 	/// component ID, sampling factor H,V, quantization table ID

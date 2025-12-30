@@ -1,9 +1,11 @@
-#include "jpg/IDCT2D.hpp"
+#include "jpg/JpegUtils.hpp"
+#include "Exception.hpp"
+
 #include <gtest/gtest.h>
 
-TEST(IDCT2DTest, InverseDCT1)
+TEST(JpegUtilsTest, InverseDCT1)
 {
-	int32_t input[64] = {
+	std::vector<int32_t> input = {
 	   24545, 62306, 47971, 39233, 10224, 10223,  3806, 56765, 
 	   39394, 46404,  1349, 63564, 54554, 13915, 11916, 12019,
 	   19938, 34390, 28307, 19085, 40098,  9141, 19145, 24009,
@@ -25,7 +27,7 @@ TEST(IDCT2DTest, InverseDCT1)
 		 21856.246833,   7475.490602,  10424.515864, -43740.453050, -21795.183394, -31702.150155,  14978.323632,  19082.040503
 	};
 
-	auto output = IDCT2D::InverseDCT(input);
+	auto output = JpegUtils::InverseDCT(input);
 
 	ASSERT_EQ(output.size(), expectedOutput.size());
 	for (size_t i = 0; i < output.size(); i++) {
@@ -33,9 +35,9 @@ TEST(IDCT2DTest, InverseDCT1)
 	}
 }
 
-TEST(IDCT2DTest, InverseDCT2)
+TEST(JpegUtilsTest, InverseDCT2)
 {
-	int32_t input[64] = {
+	std::vector<int32_t> input = {
 		248, 0, 0, 0, 0, 0, 0, 0,
 	      0, 0, 0, 0, 0, 0, 0, 0,
 	      0, 0, 0, 0, 0, 0, 0, 0,
@@ -57,10 +59,37 @@ TEST(IDCT2DTest, InverseDCT2)
 		31, 31, 31, 31, 31, 31, 31, 31
 	};
 
-	auto output = IDCT2D::InverseDCT(input);
+	auto output = JpegUtils::InverseDCT(input);
 
 	ASSERT_EQ(output.size(), expectedOutput.size());
 	for (size_t i = 0; i < output.size(); i++) {
 		EXPECT_NEAR(output[i], expectedOutput[i], 0.00001);
+	}
+}
+
+TEST(JpegUtilsTest, ZigZagReorderNotEnoughData)
+{
+	std::vector<int32_t> input = { 1, 2, 3 };
+	EXPECT_THROW(JpegUtils::ZigZagReorder(input), Exception);
+}
+
+TEST(JpegUtilsTest, ZigZagReorder)
+{
+	std::vector<int32_t> input = {
+		 0,  1,  8, 16,  9,  2,  3, 10,
+		17, 24, 32, 25, 18, 11,  4,  5,
+		12, 19, 26, 33, 40, 48, 41, 34,
+		27, 20, 13,  6,  7, 14, 21, 28,
+		35, 42, 49, 56, 57, 50, 43, 36,
+		29, 22, 15, 23, 30, 37, 44, 51,
+		58, 59, 52, 45, 38, 31, 39, 46,
+		53, 60, 61, 54, 47, 55, 62, 63
+	};
+
+	auto result = JpegUtils::ZigZagReorder(input);
+
+	for (int i = 0; i < 64; i++)
+	{
+		EXPECT_EQ(result[i], i);
 	}
 }

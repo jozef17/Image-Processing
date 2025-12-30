@@ -1,5 +1,5 @@
 #include "jpg/JpegLoader.hpp"
-#include "jpg/IDCT2D.hpp"
+#include "jpg/JpegUtils.hpp"
 #include "jpg/EntropyDecoder.hpp"
 #include "jpg/JpegException.hpp"
 #include "BitStream.hpp"
@@ -13,14 +13,6 @@
 #include <iostream>
 #include <iomanip>
 // TMP ////////////////////////////////////////////////////
-
-// TODO:
-// Check DC - 0 / AC = 1 table class IDs
-// Reject more than one DC & AC table per component
-// Must mach SoF components ???
-// reject multiple SoS segments
-// Check that huffman tablôes exists for all components in SoS
-// Allow only 4:4:4 and 4:2:0 subsampling, reject others
 
 enum class DqtType : uint8_t
 {
@@ -36,32 +28,12 @@ enum class ColorComponent : uint8_t
 	Cr = 3
 };
 
-static constexpr uint8_t zigZag[64] = {0,  1, 5, 6,14,15,27,28,
-									   2,  4, 7,13,16,26,29,42,
-									   3,  8,12,17,25,30,41,43,
-									   9, 11,18,24,31,40,44,53,
-									   10,19,23,32,39,45,52,54,
-									   20,22,33,38,46,51,55,60,
-									   21,34,37,47,50,56,59,61,
-									   35,36,48,49,57,58,62,63 };
-
 struct Segment
 {
 	uint8_t marker[2]         = {};
 	uint16_t size             = 0;
 	std::vector<uint8_t> data = {};
 };
-
-void LogSegment(const Segment& segment)
-{
-	std::cout << std::setw(2) << std::setfill('0') << std::hex << (int)segment.marker[0] << " " << (int)segment.marker[1] << ", " <<
-		std::dec << segment.size << ", ";
-	for (auto c : segment.data)
-	{
-		std::cout << std::setw(2) << std::setfill('0') << std::hex << (int)c << " ";
-	}
-	std::cout << std::endl;
-}
 
 JpegLoader::JpegLoader(const std::string& filename)
 {
@@ -78,7 +50,7 @@ JpegLoader::JpegLoader(const std::string& filename)
 bool JpegLoader::IsJpegImage(const uint8_t* header, uint32_t size)
 {
 	// SOI marker  (ff d8) and start of next marker (ff)
-	const uint8_t jpegHeader[3] = { 0xff, 0xd8, 0xff };
+	constexpr uint8_t jpegHeader[3] = { 0xff, 0xd8, 0xff };
 	if (size < 3)
 	{
 		throw JpegException("Not enough data to asses the file (jpg)");
@@ -171,7 +143,7 @@ std::cout << "Marker detected: " << std::setw(2) << std::setfill('0') << std::he
 
 				if (current >= 0xd0 && current <= 0xd7) // TODO: potentialy not needed to be deleted
 				{
-					std::cout << "SOS Restart interval detected: " << std::dec << (int)(current) << std::endl;
+throw JpegException("SOS Restart interval detected");
 					continue;
 				}
 				else
@@ -183,7 +155,7 @@ std::cout << "Marker detected: " << std::setw(2) << std::setfill('0') << std::he
 			}
 		} // bitstream loading and processing
 	}// while
-		}
+}
 
 void JpegLoader::ProcessSegment(const Segment& segment)
 {
@@ -210,7 +182,6 @@ void JpegLoader::ProcessSegment(const Segment& segment)
 	case 0xc2: // "Start of frame" (SOF) - progresive DCT
 		throw JpegException("Progressive DCT not supported!");
 	default:
-		LogSegment(segment);
 		throw JpegException("Unsupported segment " + std::to_string((int)segment.marker[1]) + "!");
 	}
 }
@@ -220,13 +191,13 @@ void JpegLoader::ProcessSegment(const Segment& segment)
 void JpegLoader::ProcessDqt(const  Segment& segment)
 {
 	// Supports only 8bit mode (1st half (msb) of 1st byte determines 8 (0) or 16 (!0) bit mode)
-	if (segment.data[0] > 0x0f)
+	if (segment.data[0] >= 0x80)
 	{
 		throw JpegException("Unsupported quantization table type!");
 	}
 
-	// Todo check if needed to be reworked
-	if (segment.size > 65)
+	// Only 8bit quantization tables supported
+	if (segment.size != 65)
 	{
 		throw JpegException("Only one quantization table in DQT supported!");
 	}
@@ -245,22 +216,9 @@ void JpegLoader::ProcessDqt(const  Segment& segment)
 		throw JpegException("Unsupported quantization table type (dqt):" + std::to_string((int)segment.data[0] & 0x0f));
 	}
 
-	std::vector<uint16_t> quantTable(64);
+	std::vector<uint8_t> quantTable(64);
 	std::copy(segment.data.begin() + 1, segment.data.begin() + 65, quantTable.begin());
 	this->quantizationTables[static_cast<uint8_t>(dqtType)] = quantTable;
-
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//std::cout << "DQT (not in zig zag): " << (dqtType == DqtType::Chrominance ? "Chrominance" : "Luminance") << std::endl;
-std::cout << "DQT (in zig zag): " << (dqtType == DqtType::Chrominance ? "Chrominance" : "Luminance") << std::endl;
-for (uint8_t b = 0; b < 64; b++)
-{
-//std::cout << std::setw(2) << std::setfill('0') << std::hex << (int)(this->quantizationTables[(uint8_t)dqtType][zigZag[b]]) << " ";
-std::cout << std::setw(2) << std::setfill('0') << std::hex << (int)this->quantizationTables[(uint8_t)dqtType][b] << " ";
-if (b % 8 == 7)
-	std::cout << std::endl;
-}
-std::cout << "---------------------------------------------------------------------" << std::endl;
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 }
 
 // Start of frame - image metadata
@@ -302,22 +260,6 @@ void JpegLoader::ProcessSof(const  Segment& segment)
 		{
 			this->maxSampFactorV = info.sampFactorV;
 		}
-
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-std::cout << "Sof Component Info:" << std::endl;
-std::cout << "Width " << std::dec << this->width << ", Height " << std::dec << this->height << std::endl;
-ColorComponent component = (ColorComponent)segment.data[i * 3 + 6];
-std::string componentName = "??";
-if (component == ColorComponent::Y)
-	componentName = "Y ";
-else if (component == ColorComponent::Cb)
-	componentName = "Cb";
-else if (component == ColorComponent::Cr)
-	componentName = "Cr";
-std::cout << componentName << ": " << "Sampling factors H: " << std::dec << (int)info.sampFactorH
-<< ", V: " << std::dec << (int)info.sampFactorV << ", " << " Quantization table ID:"
-<< std::dec << (int)info.quantTableId << std::endl;
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	}
 }
 
@@ -325,23 +267,11 @@ std::cout << componentName << ": " << "Sampling factors H: " << std::dec << (int
 // Number of components (1 byte), ID and huffman table selection (2 bytes per component), other (3bytes)
 void JpegLoader::ProcessSos(const Segment& segment)
 {
-	std::cout << "Sos:" << std::endl;
-	LogSegment(segment);
-
 	// Process header
 	auto index = 1;
-	std::cout << "Component count: " << std::dec << (int)segment.data[0] << std::endl;
 	for (uint8_t i = 0; i < segment.data[0]; i++)
 	{
 		uint8_t component = segment.data[index];
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////
-std::string componentStr = "Y ";
-if (segment.data[index] == 2)
-	componentStr = "Cb";
-if (segment.data[index] == 3)
-	componentStr = "Cr";
-std::cout << componentStr << " DC: " << ((int)segment.data[index+1] >> 4) << ", AC: " << (int)(segment.data[index+1] & 0x0f) << std::endl;
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////
 		index++; // increment index to get value
 		componentHuffmanTables[component] = std::make_tuple(
 			segment.data[index] >> 4,  // DC table
@@ -386,9 +316,6 @@ void JpegLoader::ProcessDht(const Segment& segment)
 	// type of HT, 0 = DC table, 1 = AC table
 	auto htType = segment.data[0] >> 4;
 
-std::cout << "Dht:" << std::endl;
-	std::cout << (htType == 0 ? "DC" : "AC") << " table " << std::dec << (int)htNumber << std::endl;
-std::cout << std::endl;
 	// Generate codes for code / lengths
 	HuffmanCode::AsignCodes(codes);
 
@@ -412,16 +339,7 @@ void JpegLoader::DecodeStream(std::vector<uint8_t> &compressedData)
 	const auto length = compressedData.size();
 	std::unique_ptr<uint8_t[]> data(new uint8_t[length]);
 	std::memcpy(data.get(), compressedData.data(), length);
-	//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-	for (uint8_t i = 0; i < length; i++)
-	{
-//	std::cout << "(" << std::setw(2) << std::setfill('0') << std::hex << (int)data[i] << ") ";
-		for (int j = 7; j >= 0; j--)
-			std::cout << ((data[i] & 1 << j) ? "1" : "0");
-		std::cout << " ";
-	}
-	std::cout << std::endl;
-	/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 	bitStream.Append(std::move(data), static_cast<uint32_t>(length));
 
 	// Initialize DC coefficients for each component
@@ -441,27 +359,13 @@ void JpegLoader::DecodeStream(std::vector<uint8_t> &compressedData)
 			// Decode appropriate number of blocks for given component, based on scaling factors (chroma upsamling)
 			for (uint8_t scale = 0; scale < component.sampFactorH * component.sampFactorV; scale++)
 			{
-				std::cout << "Component ID: " << std::dec << (int)component.componentId << std::endl;
-
 				// Decode block
 				const auto [dcTableId, acTableId] = this->componentHuffmanTables[component.componentId];
-std::cout << "Decoding block " << (int)component.componentId << " #" << (int)scale << " " << " dcTable: " << std::dec << (int)dcTableId << ", acTable: " << std::dec << (int)acTableId << std::endl;
 				auto block = entropyDecoder.DecodeBlock(this->dcTables[dcTableId], this->acTables[dcTableId]);
-std::cout << "DC acc " << dcCoeficients[component.componentId] << ", decoded DC " << block[0] << " new DC "<< (dcCoeficients[component.componentId] + block[0]) << std::endl;
 
 				// Update DC coefficient
 				dcCoeficients[component.componentId] += block[0];
 				block[0] = dcCoeficients[component.componentId];
-
-//if(static_cast<ColorComponent>(component.componentId) == ColorComponent::Y)
-{ 
-std::cout << "Decoded block:" << std::endl;
-for (int i = 0; i < 64; i++)
-{
-	std::cout << std::dec << (int)block[i] << " ";
-}
-std::cout << std::endl;
-}//*/
 
 				// Get quantization table for component
 				auto quantTableType = static_cast<ColorComponent>(component.componentId) == ColorComponent::Y ? DqtType::Luminance : DqtType::Chrominance;
@@ -471,43 +375,17 @@ std::cout << std::endl;
 				// Dequantization - Elementwise multiplication of block by corresponding quantization table
 				for (int index = 0; index < 64; index++)
 				{
-					block[index] = block[index] * quantTable[index];
+					block[index] = block[index] * static_cast<int32_t>(quantTable[index]);
 				}
 
-/*
-std::cout << "Dequantized block:" << std::endl;
-				for (int i = 0; i < 64; i++)
-				{
-std::cout << std::dec << (int)block[i] << " ";
-				}
-std::cout << std::endl;//*/
 				// zig-zag reordering
-				int32_t reorderedBlock[64]; // tbd 8x8 or 64
-				for (int index = 0; index < 64; index++)
-				{
-					reorderedBlock[zigZag[index]] = block[index];
-					}
+				auto reorderedBlock = JpegUtils::ZigZagReorder(block);
 				block.clear(); // No longer needed - clean up
-
-std::cout << "Reordered:" << std::endl;
-for (int i = 0; i < 64; i++)
-{
-	std::cout << std::dec << (int)reorderedBlock[i] << " ";
-}
-std::cout << std::endl;//*/
 
 				// Apply 2D inverse discrete cosine transform
 				// TODO: merge the below lines into one
-				auto mcuBlock = IDCT2D::InverseDCT(&reorderedBlock[0]);
+				auto mcuBlock = JpegUtils::InverseDCT(reorderedBlock);
 				mcuBlocks[static_cast<ColorComponent>(component.componentId)].push_back(mcuBlock);
-
-//*
-std::cout << "MCU Block after IDCT:" << std::endl;
-for (int i = 0; i < 64; i++)
-{
-	std::cout << std::dec << (int)(mcuBlock[i]) << " ";
-}
-std::cout << std::endl;
 			} // for scaling factor
 		} // for components
 
@@ -516,68 +394,25 @@ std::cout << std::endl;
 		// All decoded blocks for current MCU
 		for (const auto& component : this->components)
 		{
-			const auto& componentBlocks = mcuBlocks[static_cast<ColorComponent>(component.componentId)];
-			uint8_t blockIndex = 0;
-
-			// For each block in component (width and height sampling factor)
-			for (int a = 0; a < component.sampFactorH; a++)
+			auto colorComponentData = PrepareComponent(mcuBlocks[static_cast<ColorComponent>(component.componentId)]);
+			// Merge components into pixels
+			for (int i = 0; i < colorComponentData.size(); i++) // y position in block
 			{
-				for (int b = 0; b < component.sampFactorV; b++)
+				switch (static_cast<ColorComponent>(component.componentId))
 				{
-
-					int samplingX = this->maxSampFactorV / component.sampFactorV;
-					int samplingY = this->maxSampFactorH / component.sampFactorH;
-
-					// For block size (8x8)
-					for (int by = 0; by < 8; by++) // y position in block
-					{
-						for (int bx = 0; bx < 8; bx++) // x position in block
-						{
-
-							// Compensate for sampling factors
-							for (int q = 0; q < samplingY; q++)
-							{
-								for (int r = 0; r < samplingX; r++)
-								{
-									int x = a * 8 + bx * samplingX + q;
-									int y = b * 8 + by * samplingY + r;
-									
-									// Set color
-									auto value = componentBlocks[blockIndex][by * 8 + bx] + 128;
-									value = value < 0 ? 0 : (value > 255 ? 255 : value);
-
-									switch (static_cast<ColorComponent>(component.componentId))
-									{
-									case ColorComponent::Y:
-										mcuPixels[y * 8 * this->maxSampFactorV + x].y = static_cast<uint8_t>(value);
-										break;
-									case ColorComponent::Cb:
-										mcuPixels[y * 8 * this->maxSampFactorV + x].Cb = static_cast<uint8_t>(value);
-										break;
-									case ColorComponent::Cr:
-										mcuPixels[y * 8 * this->maxSampFactorV + x].Cr = static_cast<uint8_t>(value);
-										break;
-									}
-								} // Sampline factor V (r)
-							} // Sampline factor H (q)
-
-						} // block width (bx)
-					} // block height (by)
-
-					blockIndex++;
+				case ColorComponent::Y:
+					mcuPixels[i].y = colorComponentData[i];
+					break;
+				case ColorComponent::Cb:
+					mcuPixels[i].Cb = colorComponentData[i];
+					break;
+				case ColorComponent::Cr:
+					mcuPixels[i].Cr = colorComponentData[i];
+					break;
 				}
 			}
-
 		} // Color component
 		mcuBlocks.clear(); // No longer needed - clean up
-/*
-std::cout << "MCU Pixels (ycbcr):" << std::endl;
-for (int i = 0; i < mcuPixels.size(); i++)
-{
-	auto pixel = mcuPixels[i];
-	std::cout << "Pixel " << i << ": Y: " << std::dec << (int)pixel.y << ", Cb: " << (int)pixel.Cb << ", Cr: " << (int)pixel.Cr << std::endl;
-}
-std::cout << std::endl;//*/
 
 		// Move to image buffer
 		for (int y = 0; y < 8 * this->maxSampFactorH && this->mcuStartY + y < this->height; y++)
@@ -588,8 +423,6 @@ std::cout << std::endl;//*/
 					std::make_unique<Pixel>(mcuPixels[y * 8 * this->maxSampFactorV + x]);
 				auto rgb = this->image[(this->mcuStartY + y) * this->width + (this->mcuStartX + x)]->ToRGB();
 				auto pixel = mcuPixels[y * 8 * this->maxSampFactorV + x];
-				std::cout << x << "," << y << ": " << (int)pixel.y << " " << (int)pixel.Cb << " " << (int)pixel.Cr << " -> "
-<< (int)rgb.red << " " << (int)rgb.green << " " << (int)rgb.blue << std::endl;
 			}
 		}
 
@@ -607,4 +440,90 @@ std::cout << std::endl;//*/
 			}
 		}
 	}
+}
+
+std::vector<uint8_t> JpegLoader::PrepareComponent(const std::vector<std::vector<double>>& component)
+{
+	const uint8_t upsampling = this->maxSampFactorH * this->maxSampFactorV;
+	std::vector<uint8_t> result(upsampling * 64);
+
+	// 4:4:4 upsampling (no upsampling)
+	if (upsampling == 1)
+	{
+		for (int i = 0; i < 64; i++)
+		{
+			auto value = std::round(component[0][i] + 128);
+			value = value < 0 ? 0 : value > 255 ? 255 : value;
+			result[i] = static_cast<uint8_t>(value);
+		}
+	}
+	// 4:2:0 upsampling
+	else if (upsampling == 4)
+	{
+		// Downsampled component
+		if (component.size() == 1)
+		{
+			for (int y = 0; y < 16; y++) // y position in block
+			{
+				for (int x = 0; x < 16; x++) // x position in block
+				{
+					auto value = std::round(component[0][(y / 2) * 8 + (x / 2)] + 128);
+					value = value < 0 ? 0 : value > 255 ? 255 : value;
+					result[y * 16 + x] = static_cast<uint8_t>(value);
+				}
+			}
+		}
+		else if (component.size() == 4)
+		{
+			// Block 0 (top left)
+			for (int y = 0; y < 8; y++) // y position in block
+			{
+				for (int x = 0; x < 8; x++) // x position in block
+				{
+					auto value = std::round(component[0][y * 8 + x] + 128);
+					value = value < 0 ? 0 : value > 255 ? 255 : value;
+					result[y * 16 + x] = static_cast<uint8_t>(value);
+				}
+			}
+
+			// Block 1 (top right)
+			for (int y = 0; y < 8; y++) // y position in block
+			{
+				for (int x = 0; x < 8; x++) // x position in block
+				{
+					auto value = std::round(component[1][y * 8 + x] + 128);
+					value = value < 0 ? 0 : value > 255 ? 255 : value;
+					result[y * 16 + x + 8] = static_cast<uint8_t>(value);
+				}
+			}
+
+			// Block 2 (bottom left)	
+			for (int y = 0; y < 8; y++) // y position in block
+			{
+				for (int x = 0; x < 8; x++) // x position in block
+				{
+					auto value = std::round(component[2][y * 8 + x] + 128);
+					value = value < 0 ? 0 : value > 255 ? 255 : value;
+					result[(y + 8) * 16 + x] = static_cast<uint8_t>(value);
+				}
+			}
+
+			// Block 3 (bottom right)	
+			for (int y = 0; y < 8; y++) // y position in block
+			{
+				for (int x = 0; x < 8; x++) // x position in block
+				{
+					auto value = std::round(component[3][y * 8 + x] + 128);
+					value = value < 0 ? 0 : value > 255 ? 255 : value;
+					result[(y + 8) * 16 + x + 8] = static_cast<uint8_t>(value);
+				}
+			}
+		}
+	}
+	else
+	{
+		throw JpegException("Only 4:4:4 and 4:2:0 upsampling is supported!");
+	}
+
+	return result;
 }
