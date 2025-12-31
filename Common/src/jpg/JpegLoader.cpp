@@ -8,18 +8,14 @@
 #include <sstream>
 #include <cstdint>
 #include <algorithm>
+#include <iomanip>
 
 // TMP ////////////////////////////////////////////////////
 #include <iostream>
-#include <iomanip>
 // TMP ////////////////////////////////////////////////////
 
-enum class DqtType : uint8_t
-{
-	Luminance = 0,
-	Chrominance = 1,
-	Invalid
-};
+constexpr uint8_t dqtTypeLuminance = 0;
+constexpr uint8_t dqtTypeChrominance = 1;
 
 enum class ColorComponent : uint8_t
 {
@@ -138,15 +134,18 @@ void JpegLoader::LoadImage(const std::string& filename)
 
 				// Marker detected
 std::cout << "Marker detected: " << std::setw(2) << std::setfill('0') << std::hex << (int)current << std::endl;
-				DecodeStream(compressedData);
-				compressedData.clear();
-
-				if (current >= 0xd0 && current <= 0xd7) // TODO: potentialy not needed to be deleted
+				try 
 				{
-throw JpegException("SOS Restart interval detected");
-					continue;
+					DecodeStream(compressedData);
+					compressedData.clear();
 				}
-				else
+				catch (EndOfStreamException&)
+				{
+					// Restart marker detected - do nothing
+				}
+
+				// End if marker is not restart
+				if (current < 0xd0 || current > 0xd7)
 				{
 					// End of stream, move back in file
 					file.seekg(std::ios::cur - 2);
@@ -202,23 +201,15 @@ void JpegLoader::ProcessDqt(const  Segment& segment)
 		throw JpegException("Only one quantization table in DQT supported!");
 	}
 
-	DqtType dqtType = DqtType::Invalid;
-	if ((segment.data[0] & 0x0f) == 0)
-	{
-		dqtType = DqtType::Luminance;
-	}
-	else if ((segment.data[0] & 0x0f) == 1)
-	{
-		dqtType = DqtType::Chrominance;
-	}
-	else
+	uint8_t dqtType = segment.data[0] & 0x0f;
+	if(dqtType > dqtTypeChrominance)
 	{
 		throw JpegException("Unsupported quantization table type (dqt):" + std::to_string((int)segment.data[0] & 0x0f));
 	}
 
 	std::vector<uint8_t> quantTable(64);
 	std::copy(segment.data.begin() + 1, segment.data.begin() + 65, quantTable.begin());
-	this->quantizationTables[static_cast<uint8_t>(dqtType)] = quantTable;
+	this->quantizationTables[dqtType] = quantTable;
 }
 
 // Start of frame - image metadata
@@ -368,8 +359,7 @@ void JpegLoader::DecodeStream(std::vector<uint8_t> &compressedData)
 				block[0] = dcCoeficients[component.componentId];
 
 				// Get quantization table for component
-				auto quantTableType = static_cast<ColorComponent>(component.componentId) == ColorComponent::Y ? DqtType::Luminance : DqtType::Chrominance;
-				// TODO add check for existence of quantization table
+				auto quantTableType = static_cast<ColorComponent>(component.componentId) == ColorComponent::Y ? dqtTypeLuminance : dqtTypeChrominance;
 				const auto& quantTable = this->quantizationTables[static_cast<uint8_t>(quantTableType)];
 
 				// Dequantization - Elementwise multiplication of block by corresponding quantization table
@@ -380,12 +370,9 @@ void JpegLoader::DecodeStream(std::vector<uint8_t> &compressedData)
 
 				// zig-zag reordering
 				auto reorderedBlock = JpegUtils::ZigZagReorder(block);
-				block.clear(); // No longer needed - clean up
 
 				// Apply 2D inverse discrete cosine transform
-				// TODO: merge the below lines into one
-				auto mcuBlock = JpegUtils::InverseDCT(reorderedBlock);
-				mcuBlocks[static_cast<ColorComponent>(component.componentId)].push_back(mcuBlock);
+				mcuBlocks[static_cast<ColorComponent>(component.componentId)].push_back(JpegUtils::InverseDCT(reorderedBlock));
 			} // for scaling factor
 		} // for components
 

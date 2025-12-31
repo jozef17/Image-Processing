@@ -11,9 +11,9 @@
     - Graphics Interchange Format (.gif)
         - **NOTE:** only limited support
     - Joint Photographic Experts Group (.jpg)
-        - **NOTE:** not the whole standard is supported, scroll down for list of un/supported features.
+        - **NOTE:** not the whole standard is supported.
     - Portable Network Graphics (.png) 
-        - **NOTE:** not the whole standard is supported, scroll down for list of un/supported features.
+        - **NOTE:** not the whole standard is supported.
 - Projects overview:
     - [Common library (shared functionality)](Common)
     - [DCT Image compression](Compression)
@@ -21,81 +21,14 @@
     - [Image Viewer](ImageViewer)
 
 ## [Common](Common)
-Static library containing shared functionality
+Static library containing shared functionality for:
+- loading raw, bitmap, png, gif and jpeg images. 
+- displaying images
+- exceptions
+- command line parsing
+- other
 
-### BitmapLoader
-- Loads image data from bitmap (.bmp) file
-
-### BitStream
-- Simplifies access to bits from byte arrays
-- Handles moving in stream
-
-### CommandLineParser
-- Parses command line arguments
-- Creates key-value pairs of command line option and its argument list
-
-### Exception (and RuntimeException)
-- Exception for differentiating between project exceptions and standard exceptions
-
-![Demo](Common/media/Exception.png)
-
-### GifLoader
-- Loads gif image
-- **Limmited support**
-    - Animation is not supported
-- Referencess:
-    - [gif blog](https://www.matthewflickinger.com/lab/whatsinagif/index.html)
-
-### Image
-- Contains ability to get and set particular pixel
-
-### ImageLoader
-- Loads requested image
-- Checks content to determine which image format is used
-
-### [JpegLoader](Common)
-- jpeg image decoder
-- **Supported features:**
-    - baseline DCT is supported (no progressive DCT))
-    - 8 bit resolution is supported (no 16bit)
-    - 3 color components (no grayscale or CMYK)
-    - 4:4:4 and 4:2:0 chroma subsampling
-
-### Pixel
-- Represents pixel
-- Enables conversion to:
-   - RGB 
-   - RGBA 
-   - YCbCr
-
-![Demo](Common/media/Pixel.png)
-
-### [PngLoader](Common)
-- PNG image decoder
-- Referencess:
-    - [PNG Specification](https://www.w3.org/TR/PNG/)
-    - [RFC 1950 "ZLIB Compressed Data Format Specification"](https://datatracker.ietf.org/doc/html/rfc1950)
-    - [RFC 1951 "DEFLATE Compressed Data Format Specification"](https://datatracker.ietf.org/doc/html/rfc1951)
-- **Unsupported features:**
-    - Indexed color is not supported.
-    - Interface method [ADAM7](https://en.wikipedia.org/wiki/Adam7_algorithm) is not supported
-    - Only 8 bit channels are supported
-    - Zlib/Inflate block type 00 is not supported (uncompressed block)
-
-![Demo](Common/media/Png.png)
-
-### RawLoader
-- Loads image data from RAW image file
-
-### Window
-- Displaying images based on their starting position:
-    - First Pixel being top left
-    - First Pixel being bottom left
-- Keyboard and joystick / gamepad inouts are supported
-- Arrow keys, WASD and joystick for moving image
-- Zoom in and out:
-    - \+ and RT (Right Trigger) to zoom in;
-    - - and LT (Left Trigger) to zoom out;
+**Note**: Some image formats don't have full support. For more details see [Common](Common).
 
 ## [Compression](Compression)
 - Simplified loosy jpeg compression algorithm (DCT - Discrete Cosine Transform method)

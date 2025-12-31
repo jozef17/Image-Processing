@@ -1,6 +1,72 @@
 # Common
 Static library containing shared functionality
 
+## Overview
+
+### BitmapLoader
+- Loads image data from bitmap (.bmp) file
+
+### BitStream
+- Simplifies access to bits from byte arrays
+- Handles moving in stream
+
+### CommandLineParser
+- Parses command line arguments
+- Creates key-value pairs of command line option and its argument list
+
+### Exception (and RuntimeException)
+- Exception for differentiating between project exceptions and standard exceptions
+
+![Demo](media/Exception.png)
+
+### GifLoader
+- Loads gif image
+- **Limmited support**
+    - Animation is not supported
+- Referencess:
+    - [gif blog](https://www.matthewflickinger.com/lab/whatsinagif/index.html)
+
+### Image
+- Contains ability to get and set particular pixel
+
+### ImageLoader
+- Loads requested image
+- Checks content to determine which image format is used
+
+### [JpegLoader](Common)
+- jpeg image decoder
+- **Supported features:**
+    - baseline DCT is supported (no progressive DCT))
+    - 8 bit resolution is supported (no 16bit)
+    - 3 color components (no grayscale or CMYK)
+    - 4:4:4 and 4:2:0 chroma subsampling
+
+### Pixel
+- Represents pixel
+- Enables conversion to:
+   - RGB 
+   - RGBA 
+   - YCbCr
+
+![Demo](media/Pixel.png)
+
+### [PngLoader]
+- PNG image decoder
+- Scroll down for more details
+
+### RawLoader
+- Loads image data from RAW image file
+
+### Window
+- Displaying images based on their starting position:
+    - First Pixel being top left
+    - First Pixel being bottom left
+- Keyboard and joystick / gamepad inouts are supported
+- Arrow keys, WASD and joystick for moving image
+- Zoom in and out:
+    - \+ and RT (Right Trigger) to zoom in;
+    - - and LT (Left Trigger) to zoom out;
+
 ## JpegLoader
 - jpeg image decoder
 - Referencess:

@@ -23,7 +23,6 @@ std::vector<int32_t> EntropyDecoder::DecodeBlock(const std::vector<HuffmanCode>&
 		}
 		else if (acRunLength == 0xF0)
 		{
-			throw RuntimeException("AC coefficient: 0xF0 encountered!");
 			i += 15; // 16 zeroes (loop increment + 15)
 			continue;
 		}

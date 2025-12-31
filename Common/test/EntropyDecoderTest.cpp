@@ -25,7 +25,7 @@ TEST(EntropyDecoderTest, DecodeError)
 }
 
 /// Test data were sourced from real image (10x10 pixels white) cut to single 8x8 block
-TEST(EntropyDecoderTest, Decode1)
+TEST(EntropyDecoderTest, DecodeWhite)
 {
 	// Setup inputs
 	std::vector<HuffmanCode> dcCodes = {{9, 63, 7}};
@@ -43,7 +43,7 @@ TEST(EntropyDecoderTest, Decode1)
 	auto block = decoder.DecodeBlock(dcCodes, acCodes);
 
 	// Check decoded values
-	EXPECT_EQ(block[0], 508); // TODO check if correct value
+	EXPECT_EQ(block[0], 508);
 	for (int i = 1; i < 64; i++)
 	{
 		EXPECT_EQ(block[i], 0);
