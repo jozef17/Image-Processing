@@ -10,10 +10,6 @@
 #include <algorithm>
 #include <iomanip>
 
-// TMP ////////////////////////////////////////////////////
-#include <iostream>
-// TMP ////////////////////////////////////////////////////
-
 constexpr uint8_t dqtTypeLuminance = 0;
 constexpr uint8_t dqtTypeChrominance = 1;
 
@@ -133,7 +129,6 @@ void JpegLoader::LoadImage(const std::string& filename)
 				}
 
 				// Marker detected
-std::cout << "Marker detected: " << std::setw(2) << std::setfill('0') << std::hex << (int)current << std::endl;
 				try 
 				{
 					DecodeStream(compressedData);
@@ -459,53 +454,29 @@ std::vector<uint8_t> JpegLoader::PrepareComponent(const std::vector<std::vector<
 					result[y * 16 + x] = static_cast<uint8_t>(value);
 				}
 			}
-		}
+		} // 1
 		else if (component.size() == 4)
 		{
-			// Block 0 (top left)
-			for (int y = 0; y < 8; y++) // y position in block
+			uint8_t compID = 0;
+			for (uint8_t a = 0; a < 2; a++)
 			{
-				for (int x = 0; x < 8; x++) // x position in block
+				for (uint8_t b = 0; b < 2; b++)
 				{
-					auto value = std::round(component[0][y * 8 + x] + 128);
-					value = value < 0 ? 0 : value > 255 ? 255 : value;
-					result[y * 16 + x] = static_cast<uint8_t>(value);
-				}
-			}
+					// Loop over block
+					for (int y = 0; y < 8; y++) // y position in block
+					{
+						for (int x = 0; x < 8; x++) // x position in block
+						{
+							auto value = std::round(component[compID][y * 8 + x] + 128);
+							value = value < 0 ? 0 : value > 255 ? 255 : value;
+							result[(y + a * 8) * 16 + x + b * 8] = static_cast<uint8_t>(value);
+						} // x
+					} // y
 
-			// Block 1 (top right)
-			for (int y = 0; y < 8; y++) // y position in block
-			{
-				for (int x = 0; x < 8; x++) // x position in block
-				{
-					auto value = std::round(component[1][y * 8 + x] + 128);
-					value = value < 0 ? 0 : value > 255 ? 255 : value;
-					result[y * 16 + x + 8] = static_cast<uint8_t>(value);
-				}
-			}
-
-			// Block 2 (bottom left)	
-			for (int y = 0; y < 8; y++) // y position in block
-			{
-				for (int x = 0; x < 8; x++) // x position in block
-				{
-					auto value = std::round(component[2][y * 8 + x] + 128);
-					value = value < 0 ? 0 : value > 255 ? 255 : value;
-					result[(y + 8) * 16 + x] = static_cast<uint8_t>(value);
-				}
-			}
-
-			// Block 3 (bottom right)	
-			for (int y = 0; y < 8; y++) // y position in block
-			{
-				for (int x = 0; x < 8; x++) // x position in block
-				{
-					auto value = std::round(component[3][y * 8 + x] + 128);
-					value = value < 0 ? 0 : value > 255 ? 255 : value;
-					result[(y + 8) * 16 + x + 8] = static_cast<uint8_t>(value);
-				}
-			}
-		}
+					compID++;
+				} // b				
+			} // a
+		} // 4
 	}
 	else
 	{
