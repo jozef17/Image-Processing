@@ -2,24 +2,8 @@
 #include "Exception.hpp"
 
 Image::Image(uint32_t width, uint32_t height, StartPosition startPosition)
-	: width(width), height(height), startPosition(startPosition)
-{
-	this->image = std::unique_ptr<std::unique_ptr<Pixel>[]>(new std::unique_ptr<Pixel>[width * height]);
-	for(unsigned int i = 0; i < width * height; i++)
-	{
-		this->image[i] = std::unique_ptr<Pixel>(new Pixel);
-	}
-}
-
-uint32_t Image::GetWidth() const
-{
-	return this->width;
-}
-
-uint32_t Image::GetHeight() const
-{
-	return this->height;
-}
+	: width(width), height(height), startPosition(startPosition), image(width * height)
+{}
 
 Pixel Image::GetPixel(uint32_t x, uint32_t y) const
 {
@@ -30,7 +14,7 @@ Pixel Image::GetPixel(uint32_t x, uint32_t y) const
 		throw Exception(errorMessage.c_str());
 	}
 
-	return *(this->image[y * this->width + x]);
+	return this->image[y * this->width + x];
 }
 
 void Image::SetPixel(uint32_t x, uint32_t y, Pixel& p)
@@ -47,5 +31,5 @@ void Image::SetPixel(uint32_t x, uint32_t y, Pixel& p)
 		y = this->height - y - 1;
 	}
 
-	this->image[y * this->width + x] = std::make_unique<Pixel>(p);
+	this->image[y * this->width + x] = p;
 }

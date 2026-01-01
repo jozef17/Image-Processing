@@ -6,6 +6,7 @@
 #include <map>
 #include <vector>
 #include <string>
+#include <memory>
 
 #include "Image.hpp"
 #include "HuffmanCode.hpp"
@@ -19,7 +20,7 @@ class BitStream;
 /// - 8bit per channel only
 /// - YCbCr color space only
 /// </summary>
-class JpegLoader : public Image
+class JpegLoader final
 {
 public:
 	JpegLoader(const std::string& filename);
@@ -32,10 +33,17 @@ public:
 	/// <returns></returns>
 	static bool IsJpegImage(const uint8_t* header, uint32_t size);
 
-	// TODO add load image function
+	/// <summary>
+	/// Loads jpg image
+	/// </summary>
+	/// <returns>loaded images</returns>
+	std::unique_ptr<Image> LoadJpegImage();
 
 private:
 
+	/// <summary>
+	/// Color component information
+	/// </summary>
 	struct SofComponentInfo
 	{
 		uint8_t componentId;
@@ -100,6 +108,9 @@ private:
 	/// Start of next MCU
 	uint32_t mcuStartX = 0;
 	uint32_t mcuStartY = 0;
+
+	std::string filename;
+	std::unique_ptr<Image> image;
 };
 
 #endif /* JPEG_IMAGE_HPP__ */

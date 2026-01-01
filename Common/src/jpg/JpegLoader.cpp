@@ -15,7 +15,7 @@ constexpr uint8_t dqtTypeChrominance = 1;
 
 enum class ColorComponent : uint8_t
 {
-	Y = 1,
+	Y  = 1,
 	Cb = 2,
 	Cr = 3
 };
@@ -27,17 +27,8 @@ struct Segment
 	std::vector<uint8_t> data = {};
 };
 
-JpegLoader::JpegLoader(const std::string& filename)
-{
-	LoadImage(filename);
-
-	// Clear temporary data
-	this->acTables.clear();
-	this->dcTables.clear();
-	this->quantizationTables.clear();
-	this->components.clear();
-	this->componentHuffmanTables.clear();
-}
+JpegLoader::JpegLoader(const std::string& filename) : filename(filename)
+{}
 
 bool JpegLoader::IsJpegImage(const uint8_t* header, uint32_t size)
 {
@@ -48,6 +39,12 @@ bool JpegLoader::IsJpegImage(const uint8_t* header, uint32_t size)
 		throw JpegException("Not enough data to asses the file (jpg)");
 	}
 	return std::memcmp(header, jpegHeader, 3) == 0;
+}
+
+std::unique_ptr<Image> JpegLoader::LoadJpegImage()
+{
+	LoadImage(this->filename);
+	return std::move(this->image);
 }
 
 void JpegLoader::LoadImage(const std::string& filename)
@@ -222,9 +219,9 @@ void JpegLoader::ProcessSof(const  Segment& segment)
 		throw JpegException("Unsupported component count: " + std::to_string((int)segment.data[5]) + "!");
 	}
 
-	this->height= ((int)segment.data[1] << 8 | (int)segment.data[2]);
-	this->width = ((int)segment.data[3] << 8 | (int)segment.data[4]);
-	this->image = std::unique_ptr<std::unique_ptr<Pixel>[]>(new std::unique_ptr<Pixel>[this->width * this->height]);
+	auto height = ((int)segment.data[1] << 8 | (int)segment.data[2]);
+	auto width  = ((int)segment.data[3] << 8 | (int)segment.data[4]);
+	this->image = std::make_unique<Image>(width, height);
 
 	for (uint8_t i = 0; i < segment.data[5]; i++)
 	{
@@ -397,14 +394,11 @@ void JpegLoader::DecodeStream(std::vector<uint8_t> &compressedData)
 		mcuBlocks.clear(); // No longer needed - clean up
 
 		// Move to image buffer
-		for (int y = 0; y < 8 * this->maxSampFactorH && this->mcuStartY + y < this->height; y++)
+		for (int y = 0; y < 8 * this->maxSampFactorH && this->mcuStartY + y < this->image->GetHeight(); y++)
 		{
-			for (int x = 0; x < 8 * this->maxSampFactorV && this->mcuStartX + x < this->width; x++)
+			for (int x = 0; x < 8 * this->maxSampFactorV && this->mcuStartX + x < this->image->GetWidth(); x++)
 			{
-				this->image[(this->mcuStartY + y) * this->width + (this->mcuStartX + x)] =
-					std::make_unique<Pixel>(mcuPixels[y * 8 * this->maxSampFactorV + x]);
-				auto rgb = this->image[(this->mcuStartY + y) * this->width + (this->mcuStartX + x)]->ToRGB();
-				auto pixel = mcuPixels[y * 8 * this->maxSampFactorV + x];
+				this->image->SetPixel(this->mcuStartX + x, this->mcuStartY + y, Pixel{ mcuPixels[y * 8 * this->maxSampFactorV + x] });
 			}
 		}
 
@@ -412,11 +406,11 @@ void JpegLoader::DecodeStream(std::vector<uint8_t> &compressedData)
 		// Move to next MCU in MCU row
 		this->mcuStartX += 8 * this->maxSampFactorV;
 		// End of row, move to next MCU row
-		if (this->mcuStartX >= this->width)
+		if (this->mcuStartX >= this->image->GetWidth())
 		{
 			this->mcuStartX = 0;
 			this->mcuStartY += 8 * this->maxSampFactorH;
-			if (this->mcuStartY >= this->height)
+			if (this->mcuStartY >= this->image->GetHeight())
 			{
 				break; // End of image
 			}

@@ -35,7 +35,8 @@ std::unique_ptr<Image> ImageLoader::LoadImage(const std::string& image)
 
 	if (JpegLoader::IsJpegImage(buffer, sizeof(buffer)))
 	{
-		return std::make_unique<JpegLoader>(image);
+		JpegLoader loader(image);
+		return loader.LoadJpegImage();
 	}
 
 	if (BitmapLoader::IsBitmapImage(buffer, sizeof(buffer)))
