@@ -1,4 +1,5 @@
 #include "png/PngLoader.hpp"
+ #include "png/PngValueReader.hpp"
 #include "png/Inflate.hpp"
 
 #include "BitStream.hpp"
@@ -123,21 +124,21 @@ std::unique_ptr<Chunk> PngLoader::LoadChnuk(std::ifstream& file)
 	uint8_t data[4] = { 0 };
 	file.read((char*)data, 4);
 	chunk->header.length = TO_INT(data);
-#ifdef ENABLE_LOGS
-	std::cout << "[PngImage::LoadChnuk] - Size: " << std::dec << chunk->header.length << std::endl;
-#endif
 
 	// Read chunk type
 	file.read((char*)data, 4);
 	chunk->header.chunkType = std::string((char*)data, 4);
-#ifdef ENABLE_LOGS
-	std::cout << "                      - Type: " << chunk->header.chunkType << std::endl;
-#endif
 
 	// Read data
 	chunk->data = std::unique_ptr<uint8_t[]>(new uint8_t[chunk->header.length]);
 	file.read((char*)chunk->data.get(), chunk->header.length);
+
+	// Read crc
+	file.read((char*)&chunk->crc, 4);
+
 #ifdef ENABLE_LOGS
+	std::cout << "[PngImage::LoadChnuk] - Size: " << std::dec << chunk->header.length << std::endl;
+	std::cout << "                      - Type: " << chunk->header.chunkType << std::endl;
 	std::cout << "                      - Data: ";
 	for (uint32_t i = 0; i < (chunk->header.length < 100 ? chunk->header.length : 100); i++)
 	{
@@ -152,17 +153,6 @@ std::unique_ptr<Chunk> PngLoader::LoadChnuk(std::ifstream& file)
 	if (chunk->header.length > 100)
 	{
 		std::cout << "...";
-	}
-	std::cout << std::endl;
-#endif
-
-	// Read crc
-	file.read((char*)&chunk->crc, 4);
-#ifdef ENABLE_LOGS
-	std::cout << "                      - Crc: ";
-	for (int i = 0; i < 4; i++)
-	{
-		std::cout << std::setw(2) << std::setfill('0') << std::hex << (int)chunk->crc[i] << " ";
 	}
 	std::cout << std::endl;
 #endif
@@ -242,22 +232,8 @@ std::unique_ptr<Image> PngLoader::ProcessData(BitStream& bitstream)
 {
 	Inflate decoder(bitstream);
 	auto decodedBytes  = decoder.Decode();
-	auto bytesPerPixel = 0;
-	switch (static_cast<ColorType>(this->colorType))
-	{
-	case ColorType::TrueColor:
-		bytesPerPixel = 3;
-		break;	
-	case ColorType::TrueColorAlpha:
-		bytesPerPixel = 4;
-		break;
-	case ColorType::GrayScale:
-		bytesPerPixel = 1;
-		break;
-	case ColorType::GrayScaleAlpha:
-		bytesPerPixel = 2;
-		break;
-	}
+
+	std::unique_ptr<Image> image = std::make_unique<Image>(this->width, this->height);
 
 #ifdef ENABLE_LOGS
 	std::cout << "[PngImage::ProcessData] Decoded Data:" << std::endl;
@@ -270,24 +246,14 @@ std::unique_ptr<Image> PngLoader::ProcessData(BitStream& bitstream)
 		}
 	}
 	std::cout << std::endl;
-#endif
-
-	std::unique_ptr<Image> image = std::make_unique<Image>(this->width, this->height);
-
-	auto start = 0;
-	while (decodedBytes.size() < this->width * this->height * bytesPerPixel + this->height)
-	{
-		decodedBytes.push_back(decodedBytes.at(start++));
-	}
-#ifdef ENABLE_LOGS
 	std::cout << "[PngImage::ProcessData] Pixels:" << std::endl;
 #endif
 
 	// "Defilter" data
-	auto loc = 0;
+	PngValueReader reader(std::move(decodedBytes), 8); // TODO change 8
 	for (uint32_t y = 0; y < this->height; y++) // y
 	{
-		auto filterType = decodedBytes.at(loc++); // get filter method for current row
+		auto filterType = reader.GetFilterMethod();
 		for (uint32_t x = 0; x < this->width; x++) // x
 		{
 			uint8_t red   = 0;
@@ -299,15 +265,15 @@ std::unique_ptr<Image> PngLoader::ProcessData(BitStream& bitstream)
 			if (this->colorType == (uint8_t)ColorType::TrueColorAlpha ||
 				this->colorType == (uint8_t)ColorType::TrueColor)
 			{
-				red = decodedBytes.at(loc++);
-				green = decodedBytes.at(loc++);
-				blue = decodedBytes.at(loc++);
+				red   = reader.GetNextValue();
+				green = reader.GetNextValue();
+				blue  = reader.GetNextValue();
 			}
 			// Gray Scale
 			else if (this->colorType == (uint8_t)ColorType::GrayScaleAlpha ||
        				 this->colorType == (uint8_t)ColorType::GrayScale)
 			{
-				red   = decodedBytes.at(loc++);
+				red   = reader.GetNextValue();
 				green = red;
 				blue  = red;
 			}
@@ -316,7 +282,7 @@ std::unique_ptr<Image> PngLoader::ProcessData(BitStream& bitstream)
 			if (this->colorType == (uint8_t)ColorType::TrueColorAlpha || 
 				this->colorType == (uint8_t)ColorType::GrayScaleAlpha)
 			{
-				alpha = decodedBytes.at(loc++);
+				alpha = reader.GetNextValue();
 			}
 
 			switch (filterType)
