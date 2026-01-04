@@ -73,14 +73,33 @@ Static library containing shared functionality
     - 3 color components (no grayscale or CMYK)
     - 4:4:4 and 4:2:0 chroma subsampling
 
-### Class Model
-TODO: add class model 
-
 ### JPEG blocks
 Jpeg image is split into blocks
 Every block starts with 0xff followed by block ID.
 Most of the blocks (except SOI and EOI) are followed by 2byte size field. The size includes payload size + the size 2bytes.
 After size field is size -2 bytes os block payload
+
+The blocks are loaded and processed in a loop in **LoadImage** function.
+The function starts with opening file and performing type checks.
+
+```
+LOOP
+  Load block marker
+  IF EOF marker
+    break
+  ENDIF
+  Load block size
+  Load block data
+  Process block data
+
+  IF SOS marker
+    Load compressed bitstream
+    Decode image 
+  ENDIF
+
+ENDLOOP
+
+```
 
 | Block           | Size      | Meaning                                      |
 |-----------------|-----------|----------------------------------------------|
@@ -131,6 +150,10 @@ Remaining bytes (sum of all values in previous section) define codes, ordered ba
 | 1                | 2*components | Color component ID (1byte), DC huffman Table (1/2byte) and AC huffman table (1/2byte) |
 | 1 + 2*components | 3            | other                           |
 
+**Note:**
+Comment (0xff 0xfe) and Metadata segments (0xff 0xe0 to 0xef) are skipped.
+Progresive DCT is not supported (0xff x0c2).
+
 ### Entropy Decoding
 After the SOS marker follows the compressed (entropy encoded) bit stream. The stream ends with EOI marker.
 There are two special rules for handling the bit stream. Since the value 0xff has special meaning (marker) in jpeg, to differentiate between a marker (like EOI) and a series of 1s in bit stream, the value is escaped. A 0xff byte followed by 0x00 byte is converted to single 0xff value in bit stream. The second special case are markers 0xff followed by any value from 0xd0 to 0xd7. These combinations are called restart markers and will be discussed shortly.
@@ -139,6 +162,8 @@ The SOF blocks contains information about components and their sampling factors.
 
 The 8by8 block is split into one DC (first) and 62 AC values. The DC value is encoded as difference from previous block value. The remaining values are encoded as is.
 Unlike png or gif, the jpeg bit stream is stored most significant bit first (the very first bit from stream is value & 1 << 7)
+
+Entropy decoding is implemented in separate class **EntropyDecoder**.
 
 ```
 Set DC coeficients to 0
