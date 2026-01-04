@@ -11,6 +11,7 @@ set(SOURCES
 	JpegUtilsTest.cpp
 	PixelTest.cpp
 	PngLoaderTest.cpp
+	PngValueReaderTest.cpp
 	RAWLoaderTest.cpp
 	Type01DecoderTest.cpp
 	Type10DecoderTest.cpp
