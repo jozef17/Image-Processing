@@ -7,6 +7,7 @@ set(SOURCES
 	ImageTest.cpp
 	PixelTest.cpp
 	PngLoaderTest.cpp
+	PngValueReaderTest.cpp
 	RAWLoaderTest.cpp
 	Type01DecoderTest.cpp
 	Type10DecoderTest.cpp

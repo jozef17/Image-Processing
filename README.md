@@ -65,9 +65,8 @@ Static library containing shared functionality
     - [RFC 1950 "ZLIB Compressed Data Format Specification"](https://datatracker.ietf.org/doc/html/rfc1950)
     - [RFC 1951 "DEFLATE Compressed Data Format Specification"](https://datatracker.ietf.org/doc/html/rfc1951)
 - **Unsupported features:**
-    - Indexed color is not supported.
     - Interface method [ADAM7](https://en.wikipedia.org/wiki/Adam7_algorithm) is not supported
-    - Only 8 bit channels are supported
+    - 16 bit channels **not** supported
     - Zlib/Inflate block type 00 is not supported (uncompressed block)
 
 ![Demo](Common/media/Png.png)

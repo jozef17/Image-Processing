@@ -18,6 +18,7 @@ set(SOURCES
    src/png/HuffmanDecoder.cpp
    src/png/Inflate.cpp 
    src/png/PngLoader.cpp
+   src/png/PngValueReader.cpp
    src/png/Type01Decoder.cpp
    src/png/Type10Decoder.cpp
 )
@@ -43,6 +44,7 @@ set(INCLUDES
    include/png/HuffmanDecoder.hpp
    include/png/Inflate.hpp 
    include/png/PngLoader.hpp
+   include/png/PngValueReader.hpp
    include/png/Type01Decoder.hpp
    include/png/Type10Decoder.hpp
 )
