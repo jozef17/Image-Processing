@@ -1,5 +1,5 @@
 #include "png/PngLoader.hpp"
- #include "png/PngValueReader.hpp"
+#include "png/PngValueReader.hpp"
 #include "png/Inflate.hpp"
 
 #include "BitStream.hpp"
@@ -10,6 +10,7 @@
 
 #include <memory>
 #include <cstdint>
+#include <algorithm>
 
 #ifdef ENABLE_LOGS
 #include <iostream>
@@ -45,15 +46,6 @@ PACK(struct IHDR
 	uint8_t interfaceMethod;		// 0 - no interface 1 - ADAM7
 });
 
-enum class ColorType : uint8_t
-{
-	GrayScale		= 0b000,
-	TrueColor		= 0b010, // RGB
-	Indexed			= 0b011,
-	GrayScaleAlpha	= 0b100,
-	TrueColorAlpha	= 0b110 // RGBA
-};
-
 PngLoader::PngLoader(const std::string& filename) : filename(filename) {}
 
 bool PngLoader::IsPngImage(uint8_t* header, uint32_t size)
@@ -64,11 +56,7 @@ bool PngLoader::IsPngImage(uint8_t* header, uint32_t size)
 	}
 
 	uint8_t reference[8] = { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A };
-	if (std::memcmp(header, reference, 8) == 0)
-	{
-		return true;
-	}
-	return false;
+	return std::memcmp(header, reference, 8) == 0;
 }
 
 std::unique_ptr<Image> PngLoader::LoadPngImage()
@@ -83,8 +71,7 @@ std::unique_ptr<Image> PngLoader::LoadPngImage()
 	// Check if png data
 	uint8_t signature[8] = { 0 };
 	file.read((char*)signature, sizeof(signature));
-	uint8_t reference[8] = { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A };
-	if (std::memcmp(signature, reference, 8) != 0)
+	if (!IsPngImage(signature,sizeof(signature)))
 	{
 		throw RuntimeException("Not a png file (" + filename + ")!");
 	}
@@ -103,9 +90,10 @@ std::unique_ptr<Image> PngLoader::LoadPngImage()
 		{
 			bitstream.Append(std::move(chunk->data), chunk->header.length);
 		}
-
-		// Handle other chunks if needed
-
+		else if(chunk->header.chunkType == "PLTE")
+		{
+			ProcessColorPalette(chunk);
+		}
 		else if (chunk->header.chunkType == "IEND")
 		{
 			break;
@@ -166,38 +154,13 @@ void PngLoader::ProcessHeader(std::unique_ptr<Chunk> &ihdrChunk)
 
 #ifdef ENABLE_LOGS
 	std::cout << "[PngImage::ProcessHeader] " << ihdrChunk->header.chunkType << std::endl;
-
-	std::cout << "                          - width:  ";
-	for (int i = 0; i < 4; i++)
-	{
-		std::cout << std::setw(2) << std::setfill('0') << std::hex << (int)ihdr.width[i] << " ";
-	}
-	std::cout << " (" << std::dec << (int)(TO_INT(ihdr.width)) << ") ";
-	std::cout << " [" << std::dec << (int)(this->width) << "]" << std::endl;
-
-	std::cout << "                          - height: ";
-	for (int i = 0; i < 4; i++)
-	{
-		std::cout << std::setw(2) << std::setfill('0') << std::hex << (int)ihdr.height[i] << " ";
-	}
-	std::cout << " (" << std::dec << (int)(TO_INT(ihdr.height)) << ") ";
-	std::cout << " [" << std::dec << (int)(this->height) << "]" << std::endl;
-
+	std::cout << "                          - width:             " << << std::dec << (int)(TO_INT(ihdr.width)) << std::endl;
+	std::cout << "                          - height:            " << std::dec << (int)(TO_INT(ihdr.height)) << std::endl;
 	std::cout << "                          - chanellSize:       "
 		<< std::setw(2) << std::setfill('0') << std::hex << (int)ihdr.chanellSize << std::endl;
 	std::cout << "                          - colorType:         "
 		<< std::setw(2) << std::setfill('0') << std::hex << (int)ihdr.colorType << std::endl;
-	std::cout << "                          - compressionMethod: "
-		<< std::setw(2) << std::setfill('0') << std::hex << (int)ihdr.compressionMethod << std::endl;
 #endif
-
-	// Check unsupported types
-	// NOTE: only RGB & RGBA supported
-	// TODO: implement other color types when needed
-	if (static_cast<ColorType>(ihdr.colorType) == ColorType::Indexed)
-	{
-		throw RuntimeException("Unsupported color type: \"" + std::to_string(ihdr.colorType) + "\"");
-	}
 
 	// NOTE: ADAM7 not supported
 	if (ihdr.interfaceMethod != 0)
@@ -208,30 +171,67 @@ void PngLoader::ProcessHeader(std::unique_ptr<Chunk> &ihdrChunk)
 	// Only "LZ77" is supported by png
 	if (ihdr.compressionMethod != 0)
 	{
-		throw RuntimeException("Unsupported compression method: \"" + std::to_string(ihdr.interfaceMethod) + "\"");
+		throw RuntimeException("Unsupported compression method: \"" + std::to_string(ihdr.compressionMethod) + "\"");
 	}
 
 	// Only filter method 0 is supported by png
 	if (ihdr.filterMethod != 0)
 	{
-		throw RuntimeException("Unsupported filter method: \"" + std::to_string(ihdr.interfaceMethod) + "\"");
+		throw RuntimeException("Unsupported filter method: \"" + std::to_string(ihdr.filterMethod) + "\"");
 	}
 
-	if (ihdr.chanellSize != 8)
+	if(ihdr.chanellSize == 16)
 	{
-		throw RuntimeException("Unsupported chanell size: \"" + std::to_string(ihdr.chanellSize) + "\"");
+		throw RuntimeException("16bit colors are not supported!");
 	}
 
 	// Allocate image data
-	this->width = (TO_INT(ihdr.width));
-	this->height = (TO_INT(ihdr.height));
-	this->colorType = ihdr.colorType;
+	this->width       = (TO_INT(ihdr.width));
+	this->height      = (TO_INT(ihdr.height));
+	this->colorType   = static_cast<ColorType>(ihdr.colorType);
+	this->chanellSize = ihdr.chanellSize;
+
+	CheckChanellSize();
+}
+
+void PngLoader::CheckChanellSize() const
+{
+	std::vector<uint8_t> allowedChannelSizes = { 0,16 };
+	if (this->colorType == ColorType::Indexed)
+	{
+		allowedChannelSizes = { 1,2,4,8 };
+	}
+	else if (this->colorType == ColorType::GrayScale)
+	{
+		allowedChannelSizes = { 1,2,4,8,16 };
+	}
+
+	if (std::none_of(allowedChannelSizes.begin(), 
+					 allowedChannelSizes.end(), 
+					 [this](uint8_t val) { return this->chanellSize != val;}))
+	{
+		throw RuntimeException("Invalid cpombination of color type (" + std::to_string((int)this->colorType) + ") and channel size (" + std::to_string((int)this->chanellSize) + ")!");
+	}
+}
+
+void PngLoader::ProcessColorPalette(std::unique_ptr<Chunk>& palette)
+{
+	if (palette->header.length % 3 != 0)
+	{
+		throw RuntimeException("Invalid Palette size!");
+	}
+
+	for (int i = 0; i < palette->header.length; i += 3)
+	{
+		RGBAPixel pixel = { palette->data[i], palette->data[i + 1], palette->data[i + 2], (uint8_t)255 };
+		this->colorPalette[i / 3] = pixel;
+	}
 }
 
 std::unique_ptr<Image> PngLoader::ProcessData(BitStream& bitstream)
 {
 	Inflate decoder(bitstream);
-	auto decodedBytes  = decoder.Decode();
+	auto decodedBytes = decoder.Decode();
 
 	std::unique_ptr<Image> image = std::make_unique<Image>(this->width, this->height);
 
@@ -250,28 +250,28 @@ std::unique_ptr<Image> PngLoader::ProcessData(BitStream& bitstream)
 #endif
 
 	// "Defilter" data
-	PngValueReader reader(std::move(decodedBytes), 8); // TODO change 8
+	PngValueReader reader(std::move(decodedBytes), this->chanellSize);
 	for (uint32_t y = 0; y < this->height; y++) // y
 	{
 		auto filterType = reader.GetFilterMethod();
 		for (uint32_t x = 0; x < this->width; x++) // x
 		{
-			uint8_t red   = 0;
-			uint8_t green = 0;
-			uint8_t blue  = 0;
-			uint8_t alpha = 255;
+			uint16_t red   = 0;
+			uint16_t green = 0;
+			uint16_t blue  = 0;
+			uint16_t alpha = 255;
 
 			// RGB & RGBA
-			if (this->colorType == (uint8_t)ColorType::TrueColorAlpha ||
-				this->colorType == (uint8_t)ColorType::TrueColor)
+			if (this->colorType == ColorType::TrueColorAlpha ||
+				this->colorType == ColorType::TrueColor)
 			{
 				red   = reader.GetNextValue();
 				green = reader.GetNextValue();
 				blue  = reader.GetNextValue();
 			}
 			// Gray Scale
-			else if (this->colorType == (uint8_t)ColorType::GrayScaleAlpha ||
-       				 this->colorType == (uint8_t)ColorType::GrayScale)
+			else if (this->colorType == ColorType::GrayScaleAlpha ||
+       				 this->colorType == ColorType::GrayScale)
 			{
 				red   = reader.GetNextValue();
 				green = red;
@@ -279,116 +279,88 @@ std::unique_ptr<Image> PngLoader::ProcessData(BitStream& bitstream)
 			}
 
 			// Alpha channel
-			if (this->colorType == (uint8_t)ColorType::TrueColorAlpha || 
-				this->colorType == (uint8_t)ColorType::GrayScaleAlpha)
+			if (this->colorType == ColorType::TrueColorAlpha || 
+				this->colorType == ColorType::GrayScaleAlpha)
 			{
 				alpha = reader.GetNextValue();
 			}
 
-			switch (filterType)
+			// Prepare pixel
+			RGBAPixel pixel = { red, green, blue, alpha };
+			if (this->colorType == ColorType::Indexed)
 			{
-			case 0:
-			{
-				// None
-				break;
+				pixel = this->colorPalette[reader.GetNextValue()];
 			}
-			case 1:
-			{
-				RGBAPixel leftPixel = { 0,0,0,0 };
-				if (x > 0)
-				{
-					leftPixel = image->GetPixel(x - 1, y).ToRGBA();
-				}
 
-				red   += leftPixel.red;
-				green += leftPixel.green;
-				blue  += leftPixel.blue;
-				alpha += leftPixel.alpha;
-
-				break;
-			}
-			case 2:
-			{
-				// Up
-				RGBAPixel abovePixel = { 0,0,0,0 }; // b
-				if (y > 0)
-				{
-					abovePixel = image->GetPixel(x, y - 1).ToRGBA();
-				}
-
-				red   += abovePixel.red;
-				green += abovePixel.green;
-				blue  += abovePixel.blue;
-				alpha += abovePixel.alpha;
-
-				break;
-			}
-			case 3:
-			{
-				// Average
-				RGBAPixel leftPixel  = { 0,0,0,0 }; // a
-				RGBAPixel abovePixel = { 0,0,0,0 }; // b
-				if (x > 0)
-				{
-					leftPixel = image->GetPixel(x - 1, y).ToRGBA();
-				}
-
-				if (y > 0)
-				{
-					abovePixel = image->GetPixel(x, y - 1).ToRGBA();
-				}
-
-				red   += static_cast<uint8_t>(std::floor((abovePixel.red   + leftPixel.red)   / 2));
-				green += static_cast<uint8_t>(std::floor((abovePixel.green + leftPixel.green) / 2));
-				blue  += static_cast<uint8_t>(std::floor((abovePixel.blue  + leftPixel.blue)  / 2));
-				alpha += static_cast<uint8_t>(std::floor((abovePixel.alpha + leftPixel.alpha) / 2));
-
-				break;
-			}
-			case 4:
-			{
-				// Peath
-				RGBAPixel leftPixel     = { 0,0,0,0 }; // a
-				RGBAPixel abovePixel    = { 0,0,0,0 }; // b
-				RGBAPixel diagonalPixel = { 0,0,0,0 }; // c
-				if (x > 0)
-				{
-					leftPixel = image->GetPixel(x - 1, y).ToRGBA();
-					if (y > 0)
-					{
-						diagonalPixel = image->GetPixel(x - 1, y - 1).ToRGBA();
-					}
-				}
-				if (y > 0)
-				{
-					abovePixel = image->GetPixel(x, y - 1).ToRGBA();
-				}
-				
-				red   += Paeth(leftPixel.red, abovePixel.red, diagonalPixel.red);
-				green += Paeth(leftPixel.green, abovePixel.green, diagonalPixel.green);
-				blue  += Paeth(leftPixel.blue, abovePixel.blue, diagonalPixel.blue);
-				alpha += Paeth(leftPixel.alpha, abovePixel.alpha, diagonalPixel.alpha);
-
-				break;
-			}
-			default:
-				throw RuntimeException("Invalid filtering method: " + std::to_string(filterType));
-			}
-#ifdef ENABLE_LOGS
-			std::cout << std::setw(3) << std::setfill('0') << std::dec << (int)red << " "
-				<< std::setw(3) << std::setfill('0') << std::dec << (int)green << " "
-				<< std::setw(3) << std::setfill('0') << std::dec << (int)blue << " "
-				<< std::setw(3) << std::setfill('0') << std::dec << (int)alpha << " "
-				<< ", ";
-#endif
-			RGBAPixel rgba{ red, green, blue, alpha };
-			image->SetPixel(x, y, Pixel(rgba));
+			// Defileter 
+			Defilter(filterType, image, x, y, pixel);
+			image->SetPixel(x, y, Pixel{ pixel });
 		}
 #ifdef ENABLE_LOGS
 		std::cout << std::endl;
 #endif
 	}
 	return image;
+}
+
+void PngLoader::Defilter(uint8_t filterType, std::unique_ptr<Image>& image, uint32_t x, uint32_t y, RGBAPixel &pixel)
+{
+	RGBAPixel leftPixel     = { 0,0,0,0 }; // a
+	RGBAPixel abovePixel    = { 0,0,0,0 }; // b
+	RGBAPixel diagonalPixel = { 0,0,0,0 }; // c
+
+	// Get Neighbouring Pixels
+	if (x > 0)
+	{
+		leftPixel = image->GetPixel(x - 1, y).ToRGBA();
+		if (y > 0)
+		{
+			diagonalPixel = image->GetPixel(x - 1, y - 1).ToRGBA();
+		}
+	}
+	if (y > 0)
+	{
+		abovePixel = image->GetPixel(x, y - 1).ToRGBA();
+	}
+
+	// Apply filter
+	switch (filterType)
+	{
+	case 0: // None
+		break;
+	case 1:
+		pixel.red   += leftPixel.red;
+		pixel.green += leftPixel.green;
+		pixel.blue  += leftPixel.blue;
+		pixel.alpha += leftPixel.alpha;
+		break;
+	case 2: // Up
+		pixel.red   += abovePixel.red;
+		pixel.green += abovePixel.green;
+		pixel.blue  += abovePixel.blue;
+		pixel.alpha += abovePixel.alpha;
+		break;
+	case 3: // Average
+		pixel.red   += static_cast<uint8_t>(std::floor((abovePixel.red + leftPixel.red) / 2));
+		pixel.green += static_cast<uint8_t>(std::floor((abovePixel.green + leftPixel.green) / 2));
+		pixel.blue  += static_cast<uint8_t>(std::floor((abovePixel.blue + leftPixel.blue) / 2));
+		pixel.alpha += static_cast<uint8_t>(std::floor((abovePixel.alpha + leftPixel.alpha) / 2));
+		break;
+	case 4: // Peath
+		pixel.red   += Paeth(leftPixel.red, abovePixel.red, diagonalPixel.red);
+		pixel.green += Paeth(leftPixel.green, abovePixel.green, diagonalPixel.green);
+		pixel.blue  += Paeth(leftPixel.blue, abovePixel.blue, diagonalPixel.blue);
+		pixel.alpha += Paeth(leftPixel.alpha, abovePixel.alpha, diagonalPixel.alpha);
+		break;
+	default:
+		throw RuntimeException("Invalid filtering method: " + std::to_string(filterType));
+	}
+#ifdef ENABLE_LOGS
+	std::cout << std::setw(3) << std::setfill('0') << std::dec << (int)red << " "
+		<< std::setw(3) << std::setfill('0') << std::dec << (int)green << " "
+		<< std::setw(3) << std::setfill('0') << std::dec << (int)blue << " "
+		<< std::setw(3) << std::setfill('0') << std::dec << (int)alpha << ", ";
+#endif
 }
 
 uint8_t PngLoader::Paeth(uint8_t a, uint8_t b, uint8_t c) const noexcept

@@ -1,18 +1,16 @@
 #include "png/PngValueReader.hpp"
 #include "Exception.hpp"
 
-#include <iostream>
-
 PngValueReader::PngValueReader(std::vector<uint8_t>&& decodedValues, uint8_t channelSize)
 	: decodedValues(std::move(decodedValues)), channelSize(channelSize) 
-{
-	// TODO check of channel is 1,2,4,8,16
-};
-
+{ };
 
 uint16_t PngValueReader::GetNextValue()
 {
-	// TODO check if at the end
+	if (this->nextByte >= this->decodedValues.size())
+	{
+		throw Exception("End of data!");
+	}
 
 	if (this->channelSize < 8)
 	{
@@ -36,21 +34,21 @@ uint16_t PngValueReader::GetNextValue()
 	}
 	else
 	{
-		// TODO
-		throw Exception("Not implemented yet!");
+		throw Exception("Bit size >8 is not supported!");
 	}
 }
 
 uint8_t PngValueReader::GetFilterMethod()
 {
-	// TODO check if at the end
-
-	if (this->nextBit == 0)
+	if (this->nextByte >= this->decodedValues.size())
 	{
-		return this->decodedValues[this->nextByte++];
+		throw Exception("End of data!");
 	}
-	this->nextByte++;
-	this->nextBit = 0;
 
+	if (this->nextBit != 0)
+	{
+		this->nextByte++;
+		this->nextBit = 0;
+	}
 	return this->decodedValues[this->nextByte++];
 }
