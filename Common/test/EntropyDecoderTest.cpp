@@ -1,11 +1,11 @@
 #include <gtest/gtest.h>
+#include <vector>
+#include <cstring>
 
 #include "jpg/EntropyDecoder.hpp"
 #include "HuffmanCode.hpp"
 #include "BitStream.hpp"
 #include "Exception.hpp"
-
-#include <vector>
 
 TEST(EntropyDecoderTest, DecodeError)
 {

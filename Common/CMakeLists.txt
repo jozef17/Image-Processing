@@ -59,9 +59,15 @@ set(INCLUDES
 
 add_library(Common STATIC ${SOURCES} ${INCLUDES} )
 
-target_link_libraries(Common PRIVATE glfw ${OPENGL_gl_LIBRARY})
+if (OpenGL_FOUND)
+  target_link_libraries(Common PRIVATE glfw ${OPENGL_gl_LIBRARY})
+else()
+# Build project without openGL (For github CI/CD pipeline without openGL)
+  target_compile_definitions(Common PRIVATE OPENGL_MISSING)
+endif()
 
 list(APPEND EXTRA_INCLUDES "${CMAKE_CURRENT_LIST_DIR}/include")
+set_property(TARGET Common PROPERTY CXX_STANDARD 17)
 target_include_directories(Common PRIVATE ${EXTRA_INCLUDES})
 
 add_subdirectory("test")

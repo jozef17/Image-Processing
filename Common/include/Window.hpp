@@ -74,4 +74,16 @@ private:
 
 };
 
+// For github CI/CD pipeline without openGL
+#ifdef OPENGL_MISSING
+
+#include "Exception.hpp"
+
+class OpenGLMissing : Exception
+{
+public:
+	OpenGLMissing() : Exception("Please recompile with OpenGL enabled!") {};
+};
+#endif // !OPENGL_MISSING
+
 #endif /* WINDOW_HPP__ */

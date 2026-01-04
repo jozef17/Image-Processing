@@ -4,6 +4,7 @@
 #define BLOCK_DECODER_HPP__
 
 #include <vector>
+#include <cstdint>
 
 class BlockDecoder
 {

@@ -19,7 +19,7 @@ public:
 	inline auto GetHeight() const { return this->height; };
 
 	Pixel GetPixel(uint32_t x, uint32_t y) const;
-	void  SetPixel(uint32_t x, uint32_t y, Pixel &p);
+	void  SetPixel(uint32_t x, uint32_t y, const Pixel &p);
 
 protected:
 	Image() = default;

@@ -17,7 +17,7 @@ Pixel Image::GetPixel(uint32_t x, uint32_t y) const
 	return this->image[y * this->width + x];
 }
 
-void Image::SetPixel(uint32_t x, uint32_t y, Pixel& p)
+void Image::SetPixel(uint32_t x, uint32_t y, const Pixel& p)
 {
 	if (x > this->width || y > this->height)
 	{

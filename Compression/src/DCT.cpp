@@ -2,6 +2,7 @@
 
 #include <vector>
 #include <thread>
+#include <cstring>
 
 #ifndef _WIN32
 #define _USE_MATH_DEFINES

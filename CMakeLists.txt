@@ -3,20 +3,18 @@ cmake_minimum_required (VERSION 3.8)
 
 project ("ImageProcessing")
 
-set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_CXX_EXTENSIONS OFF)
-
-find_package(OpenGL REQUIRED)
+find_package(OpenGL)
 
 # glfw
-if (NOT glfw)
-	include(FetchContent)
-	FetchContent_Declare(glfw
-   URL https://github.com/glfw/glfw/archive/refs/heads/master.zip
-	)
-	set(glfw_force_shared_crt ON CACHE BOOL "" FORCE)
-	FetchContent_MakeAvailable(glfw)
+if (OpenGL_FOUND)
+	if (NOT glfw)
+		include(FetchContent)
+		FetchContent_Declare(glfw
+		  URL https://github.com/glfw/glfw/archive/refs/heads/master.zip
+		)
+		set(glfw_force_shared_crt ON CACHE BOOL "" FORCE)
+		FetchContent_MakeAvailable(glfw)
+	endif()
 endif()
 
 # Google Test

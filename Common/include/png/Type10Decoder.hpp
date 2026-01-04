@@ -6,7 +6,8 @@
 #include <vector>
 
 #include "HuffmanDecoder.hpp"
-#include "HuffmanCode.hpp"
+
+struct HuffmanCode;
 
 class Type10Decoder final : public HuffmanDecoder
 {
@@ -23,16 +24,16 @@ private:
 	uint16_t Get(uint8_t numOfBits);
 
 	// Decodes bits and returns code based on alphabet
-	uint16_t Get(const std::vector<Code>& codes);
+	uint16_t Get(const std::vector<HuffmanCode>& codes);
 
 	// decodes code lengths
-	std::vector<Code> GetCodeLengths(uint8_t hclen);
+	std::vector<HuffmanCode> GetCodeLengths(uint8_t hclen);
 
 	// decodes alphabet
-	std::vector<Code> GetAlphabet(uint16_t numElements, const std::vector<Code> &distCodes);
+	std::vector<HuffmanCode> GetAlphabet(uint16_t numElements, const std::vector<HuffmanCode> &distCodes);
 
-	std::vector<Code> llAphabet;
-	std::vector<Code> distanceAlphabet;
+	std::vector<HuffmanCode> llAphabet;
+	std::vector<HuffmanCode> distanceAlphabet;
 };
 
 #endif /* TYPE_10_DECODER_HPP__ */

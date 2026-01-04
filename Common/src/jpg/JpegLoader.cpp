@@ -4,9 +4,11 @@
 #include "jpg/JpegException.hpp"
 #include "BitStream.hpp"
 
+#include <cstdint>
+#include <cstring>
+#include <cmath>
 #include <fstream>
 #include <sstream>
-#include <cstdint>
 #include <algorithm>
 #include <iomanip>
 

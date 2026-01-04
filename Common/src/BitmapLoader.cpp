@@ -72,7 +72,7 @@ std::unique_ptr<Image> BitmapLoader::LoadBitmapImage()
 		throw RuntimeException("Not a bmp file (" + filename + ")!");
 	}
 
-	std::unique_ptr<Image> img = std::make_unique<Image>(bmpInfo.biWidth, bmpInfo.biHeight, Image::StartPosition::BottomLeft);
+	std::unique_ptr<Image> img = std::unique_ptr<Image>(new Image(bmpInfo.biWidth, bmpInfo.biHeight, Image::StartPosition::BottomLeft));
 	unsigned long offset = bmpHeader.bfOffBits;
 	unsigned long size = bmpInfo.biSizeImage;
 
