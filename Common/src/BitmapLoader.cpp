@@ -32,7 +32,7 @@ PACK(struct BITMAPINFOHEADER
 
 BitmapLoader::BitmapLoader(std::string filename) : filename(filename) {}
 
-bool BitmapLoader::IsBitmapImage(uint8_t* header, uint32_t size)
+bool BitmapLoader::IsBitmapImage(const uint8_t* header, uint32_t size)
 {
 	if (size < 2)
 	{
@@ -79,9 +79,9 @@ std::unique_ptr<Image> BitmapLoader::LoadBitmapImage()
 	// Load data
 	file.seekg(offset); // go to start of data
 
-	for (uint32_t y = 0; y < bmpInfo.biHeight; y++)
+	for (uint32_t y = 0; y < static_cast<uint32_t>(bmpInfo.biHeight); y++)
 	{
-		for (uint32_t x = 0; x < bmpInfo.biWidth; x++)
+		for (uint32_t x = 0; x < static_cast<uint32_t>(bmpInfo.biWidth); x++)
 		{
 			// read pixel
 			uint8_t data[3];

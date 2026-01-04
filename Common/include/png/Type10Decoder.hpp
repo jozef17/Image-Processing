@@ -6,8 +6,7 @@
 #include <vector>
 
 #include "HuffmanDecoder.hpp"
-
-struct Code;
+#include "HuffmanCode.hpp"
 
 class Type10Decoder final : public HuffmanDecoder
 {

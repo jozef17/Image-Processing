@@ -48,7 +48,7 @@ PACK(struct IHDR
 
 PngLoader::PngLoader(const std::string& filename) : filename(filename) {}
 
-bool PngLoader::IsPngImage(uint8_t* header, uint32_t size)
+bool PngLoader::IsPngImage(const uint8_t* header, uint32_t size)
 {
 	if (size < 8)
 	{

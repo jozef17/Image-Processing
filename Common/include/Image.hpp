@@ -3,7 +3,7 @@
 #ifndef IMAGE_HPP__
 #define IMAGE_HPP__
 
-#include <memory>
+#include <vector>
 
 #include "Pixel.hpp"
 
@@ -15,8 +15,8 @@ public:
 	Image(uint32_t width, uint32_t height, StartPosition startPosition = StartPosition::TopLeft);
 	virtual ~Image() = default;
 
-	uint32_t GetWidth() const;
-	uint32_t GetHeight() const;
+	inline auto GetWidth() const { return this->width; };
+	inline auto GetHeight() const { return this->height; };
 
 	Pixel GetPixel(uint32_t x, uint32_t y) const;
 	void  SetPixel(uint32_t x, uint32_t y, Pixel &p);
@@ -26,11 +26,10 @@ protected:
 
 	StartPosition startPosition = StartPosition::TopLeft;
 
-	std::unique_ptr<std::unique_ptr<Pixel>[]> image;
+	std::vector<Pixel> image;
 
 	uint32_t width  = 0;
 	uint32_t height = 0;
-
 };
 
 #endif /* IMAGE_HPP__ */

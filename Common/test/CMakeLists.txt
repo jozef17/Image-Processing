@@ -2,9 +2,13 @@
 
 set(SOURCES
     BitmapLoaderTest.cpp
+	BitStreamTest.cpp
 	CommandLineParserTest.cpp
+	EntropyDecoderTest.cpp
 	ImageLoaderTest.cpp
 	ImageTest.cpp
+	JpegLoaderTest.cpp
+	JpegUtilsTest.cpp
 	PixelTest.cpp
 	PngLoaderTest.cpp
 	PngValueReaderTest.cpp

@@ -17,7 +17,7 @@ class GifLoader
 public:
 	GifLoader(const std::string& filename);
 
-	static bool IsGifImage(uint8_t* header, uint32_t size);
+	static bool IsGifImage(const uint8_t* header, uint32_t size);
 
 	std::unique_ptr<Image> LoadGifImage();
 

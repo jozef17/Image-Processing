@@ -27,7 +27,7 @@ public:
 	/// <param name="size">Header size</param>
 	/// <returns>True if header matches png, false otherwise. 
 	///	If not enough data is provided, an exception is thrown</returns>
-	static bool IsPngImage(uint8_t* header, uint32_t size);
+	static bool IsPngImage(const uint8_t* header, uint32_t size);
 
 	std::unique_ptr<Image> LoadPngImage();
 

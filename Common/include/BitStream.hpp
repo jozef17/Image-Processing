@@ -7,6 +7,8 @@
 #include <memory>
 #include <cstdint>
 
+#include "Exception.hpp"
+
 #ifdef ENABLE_LOGS
 #include <string>
 #endif
@@ -14,6 +16,10 @@
 class BitStream
 {
 public:
+	enum class Mode : uint8_t { LSB, MSB };
+
+	BitStream() = default; // LSB by default
+	BitStream(Mode mode) : mode(mode), bitPosition(mode == Mode::MSB ? 7 : 0) {};
 
 	/// <summary>
 	/// Returns next bit in stream
@@ -46,13 +52,21 @@ public:
 	std::string LogCurrent();
 #endif
 private:
+	Mode mode = Mode::LSB;
+
 	uint32_t bytePosition  = 0;
-	uint32_t bitPosition   = 0;
+	int32_t  bitPosition   = 0;
 	uint32_t arrayPosition = 0;
 
 	std::vector<std::unique_ptr<uint8_t[]>> data;
 	std::vector<uint32_t> lengths;
 
+};
+
+class EndOfStreamException : public Exception
+{
+public:
+	EndOfStreamException() : Exception("End of bitstream") {}
 };
 
 #endif /* BIT_STREAM_HPP__ */

@@ -47,9 +47,6 @@ public:
 	Pixel(RGBAPixel pixel);
 	Pixel(YCbCrPixel pixel);
 
-	Pixel(Pixel& p) = default;
-	Pixel& operator =(Pixel& p) = default;
-
 	RGBPixel ToRGB();
 	RGBAPixel ToRGBA();
 	YCbCrPixel ToYCbCr();
@@ -67,6 +64,5 @@ private:
 	PixelType type;
 	PixelInternal pixel;
 };
-
 
 #endif /* PIXEL_HPP__ */

@@ -5,6 +5,7 @@ set(SOURCES
    src/BitmapLoader.cpp
    src/BitStream.cpp
    src/CommandLineParser.cpp
+   src/HuffmanCode.cpp
    src/Image.cpp
    src/ImageLoader.cpp   
    src/Pixel.cpp
@@ -14,6 +15,9 @@ set(SOURCES
    src/Window.cpp
    src/gif/GifLoader.cpp
    src/gif/LZW.cpp
+   src/jpg/EntropyDecoder.cpp
+   src/jpg/JpegLoader.cpp
+   src/jpg/JpegUtils.cpp
    src/png/Adler32.cpp
    src/png/HuffmanDecoder.cpp
    src/png/Inflate.cpp 
@@ -39,6 +43,10 @@ set(INCLUDES
    include/Window.hpp
    include/gif/GifLoader.hpp
    include/gif/LZW.hpp
+   include/jpg/EntropyDecoder.hpp
+   include/jpg/JpegException.hpp
+   include/jpg/JpegLoader.hpp
+   include/jpg/JpegUtils.hpp
    include/png/Adler32.hpp
    include/png/BlockDecoder.hpp
    include/png/HuffmanDecoder.hpp

@@ -9,7 +9,7 @@
 
 GifLoader::GifLoader(const std::string& filename) : filename(filename) {}
 
-bool GifLoader::IsGifImage(uint8_t* header, uint32_t size)
+bool GifLoader::IsGifImage(const uint8_t* header, uint32_t size)
 {
 	if (size < 6)
 	{
