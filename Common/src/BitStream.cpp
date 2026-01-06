@@ -102,7 +102,7 @@ std::string BitStream::LogCurrent()
 
 	s << "Array pos #" << (int)this->arrayPosition << "/" << this->data.size() << "\n";
 	s << "Byte pos  #" << (int)this->bytePosition << "/" << this->lengths[this->arrayPosition] << "\n";
-	s << "Bite pos  #" << (int)this->bitPosition << "/8\n";
+	s << "Bite pos  #" << (int)this->bitPosition << "\n";
 	s << "\t" << std::setfill('0') << std::hex << (int)byte << " ";
 	for (uint8_t i = 0; i < 8; i++)
 	{

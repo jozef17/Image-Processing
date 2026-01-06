@@ -4,25 +4,19 @@
 #include <stdexcept>
 #include <string>
 
-class Exception : public std::exception
+class Exception : public std::runtime_error
 {
 public:
-	Exception(std::string message) noexcept
-		: Exception(message.c_str()) {}
-
-	Exception(char const* const message) noexcept 
-		: std::exception(message) {}
+	Exception(const std::string &message) noexcept
+		: std::runtime_error(message.c_str()) {}
 
 };
 
-class RuntimeException : public Exception, public std::runtime_error
+class RuntimeException : public Exception
 {
 public:
-	RuntimeException(std::string message) noexcept
-		: std::runtime_error(message.c_str()), Exception(message) {}
-
-	RuntimeException(char const* const message) noexcept 
-		: std::runtime_error(message), Exception(message) {}
+	RuntimeException(const std::string &message) noexcept
+		: Exception(message) {}
 
 };
 

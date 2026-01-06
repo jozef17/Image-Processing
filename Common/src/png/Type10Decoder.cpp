@@ -1,5 +1,6 @@
 #include "png/Type10Decoder.hpp"
 #include "png/Adler32.hpp"
+#include "HuffmanCode.hpp"
 #include "Exception.hpp"
 #include "BitStream.hpp"
 
@@ -79,7 +80,7 @@ uint16_t Type10Decoder::Get(uint8_t numOfBits)
 	return value;
 }
 
-uint16_t Type10Decoder::Get(const std::vector<Code>& codes)
+uint16_t Type10Decoder::Get(const std::vector<HuffmanCode>& codes)
 {
 	auto length = codes.at(0).length;
 	auto value = Get(length);
@@ -103,18 +104,18 @@ uint16_t Type10Decoder::Get(const std::vector<Code>& codes)
 	throw RuntimeException("Decoding Failed");
 }
 
-std::vector<Code> Type10Decoder::GetCodeLengths(uint8_t hclen)
+std::vector<HuffmanCode> Type10Decoder::GetCodeLengths(uint8_t hclen)
 {
 	uint8_t indexes[19] = { 16, 17, 18, 0, 8, 7, 9, 6, 10, 5, 11, 4, 12, 3, 13, 2, 14, 1, 15 };
 
 	// Read lengths
-	std::vector<Code> codeLengths;
+	std::vector<HuffmanCode> codeLengths;
 	for (uint8_t i = 0; i < hclen + 4; i++)
 	{
 		auto length = Get(3);
 		if (length > 0)
 		{
-			Code code = { 0 };
+			HuffmanCode code = { 0 };
 			code.value = indexes[i];
 			code.length = static_cast<uint8_t>(length);
 			codeLengths.push_back(code);
@@ -123,7 +124,7 @@ std::vector<Code> Type10Decoder::GetCodeLengths(uint8_t hclen)
 	std::sort(codeLengths.begin(), codeLengths.end());
 
 	// Asign codes
-	Code::AsignCodes(codeLengths);
+	HuffmanCode::AsignCodes(codeLengths);
 
 #ifdef ENABLE_LOGS
 	std::cout << "[Type10Decoder::GetCodeLengths] Code Lengths: ";
@@ -136,9 +137,9 @@ std::vector<Code> Type10Decoder::GetCodeLengths(uint8_t hclen)
 	return codeLengths;
 }
 
-std::vector<Code> Type10Decoder::GetAlphabet(uint16_t numElements, const std::vector<Code>& distCodes)
+std::vector<HuffmanCode> Type10Decoder::GetAlphabet(uint16_t numElements, const std::vector<HuffmanCode>& distCodes)
 {
-	std::vector<Code> codes;
+	std::vector<HuffmanCode> codes;
 
 	while (codes.size() < numElements )
 	{
@@ -146,7 +147,7 @@ std::vector<Code> Type10Decoder::GetAlphabet(uint16_t numElements, const std::ve
 
 		if (val < 16)
 		{
-			Code code = { 0 };
+			HuffmanCode code = { 0 };
 			code.length = static_cast<uint8_t>(val);
 			code.value = static_cast<uint16_t>(codes.size());
 			codes.push_back(code);
@@ -177,7 +178,7 @@ std::vector<Code> Type10Decoder::GetAlphabet(uint16_t numElements, const std::ve
 			std::cout << "[Type10Decoder::GetAlphabet] (17) Adding "
 				<< std::dec << (int)repeatLength << " zeroes" << std::endl;
 #endif
-			Code code = { 0 };
+			HuffmanCode code = { 0 };
 			for (uint16_t i = 0; i < repeatLength; i++)
 			{
 				code.value = static_cast<uint8_t>(codes.size());
@@ -191,7 +192,7 @@ std::vector<Code> Type10Decoder::GetAlphabet(uint16_t numElements, const std::ve
 			std::cout << "[Type10Decoder::GetAlphabet] (18) Adding "
 				<< std::dec << (int)repeatLength << " zeroes" << std::endl;
 #endif
-			Code code = { 0 };
+			HuffmanCode code = { 0 };
 			for (uint16_t i = 0; i < repeatLength; i++)
 			{
 				code.value = static_cast<uint16_t>(codes.size());
@@ -205,13 +206,13 @@ std::vector<Code> Type10Decoder::GetAlphabet(uint16_t numElements, const std::ve
 		std::remove_if( 
 			codes.begin(), 
 			codes.end(), 
-			[](const Code& code){return code.length == 0;}
+			[](const HuffmanCode& code){return code.length == 0;}
 		),
 		codes.end()
 	);
 
 	std::sort(codes.begin(), codes.end());
-	Code::AsignCodes(codes);
+	HuffmanCode::AsignCodes(codes);
 
 	return codes;
 }

@@ -1,6 +1,8 @@
 #include "FloatImage.hpp"
 #include "Exception.hpp"
 
+#include <cstring>
+
 FloatImage::FloatImage(uint32_t width, uint32_t height) : width(width), height(height)
 {
 	this->image.resize(width * height);

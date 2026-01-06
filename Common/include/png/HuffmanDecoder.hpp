@@ -4,6 +4,8 @@
 #define HUFFMAN_DECODER_HPP__
 
 #include "BlockDecoder.hpp"
+#include <cstdint>
+
 class BitStream;
 
 class HuffmanDecoder : public BlockDecoder

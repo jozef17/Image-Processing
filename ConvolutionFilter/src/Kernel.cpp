@@ -5,6 +5,7 @@
 #include <fstream>
 #include <sstream>
 #include <iomanip>
+#include <cmath>
 
 Kernel::Kernel(uint16_t width, uint16_t height, std::vector<float> kernelData) 
 	: width(width), height(height), kernel(kernelData)

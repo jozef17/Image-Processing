@@ -3,7 +3,10 @@
 #include "Exception.hpp"
 #include "Pixel.hpp"
 
+#ifndef  OPENGL_MISSING
 #include <GLFW/glfw3.h>
+#endif // For github CI/CD pipeline without openGL
+#include <cstring>
 #include <functional>
 #include <map>
 
@@ -11,6 +14,7 @@
 std::map<void*, std::function<void(uint16_t, uint16_t)>> windowKeyMapping;
 std::map<void*, std::function<void(uint16_t, uint16_t)>> windowSizeMapping;
 
+#ifndef  OPENGL_MISSING
 void KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods) noexcept
 {
 	auto callback = windowKeyMapping.find(window);
@@ -28,6 +32,7 @@ void ResizeCallback(GLFWwindow* window, int width, int height) noexcept
 		windowSizeMapping[window](width, height);
 	}
 }
+#endif
 
 Framebuffer::Framebuffer() noexcept : size(0)
 {}
@@ -60,9 +65,10 @@ Window::~Window()
 	{
 		windowKeyMapping.erase(this->window);
 		windowSizeMapping.erase(this->window);
-
+#ifndef  OPENGL_MISSING 
 		glfwDestroyWindow((GLFWwindow*)this->window);
 		glfwTerminate();
+#endif
 	}
 }
 
@@ -91,6 +97,7 @@ void Window::SetTitle(std::string title)
 
 void Window::Show()
 {
+#ifndef  OPENGL_MISSING
 	Init();
 
 	CreateWindow();
@@ -116,6 +123,9 @@ void Window::Show()
 	glfwDestroyWindow((GLFWwindow*)this->window);
 	glfwTerminate();
 	this->window = nullptr;
+#else  // For github CI/CD pipeline without openGL
+	throw OpenGLMissing();
+#endif
 }
 
 Image* Window::GetImage()
@@ -152,24 +162,33 @@ void Window::UpdateFramebuffer()
 
 void Window::Init()
 {
+#ifndef  OPENGL_MISSING
 	if (!glfwInit())
 	{
 		throw Exception("Failed to initialize glfw");
 	}
+#else  // For github CI/CD pipeline without openGL
+	throw OpenGLMissing();
+#endif
 }
 
 void Window::CreateWindow()
 {
+#ifndef  OPENGL_MISSING
 	this->window = glfwCreateWindow(this->width, this->height, this->title.c_str(), NULL, NULL);
 	if (this->window == nullptr)
 	{
 		glfwTerminate();
 		throw Exception("Failed to create window");
 	}
+#else  // For github CI/CD pipeline without openGL
+	throw OpenGLMissing();
+#endif
 }
 
 void Window::SetCallbacks()
 {
+#ifndef  OPENGL_MISSING
 	// Register event mapping
 	windowKeyMapping[this->window] = std::bind(&Window::HandleKeyPressed, this, std::placeholders::_1, std::placeholders::_2);
 	windowSizeMapping[this->window] = std::bind(&Window::HandleResize, this, std::placeholders::_1, std::placeholders::_2);
@@ -177,10 +196,14 @@ void Window::SetCallbacks()
 	// Set Callbacks
 	glfwSetKeyCallback((GLFWwindow*)this->window, KeyCallback);
 	glfwSetWindowSizeCallback((GLFWwindow*)this->window, ResizeCallback);
+#else  // For github CI/CD pipeline without openGL
+	throw OpenGLMissing();
+#endif
 }
 
 void Window::HandleJoystick()
 {
+#ifndef  OPENGL_MISSING
 	// Check if jhoystick is present
 	int jpysticPressent = glfwJoystickPresent(GLFW_JOYSTICK_1);
 	if (!jpysticPressent)
@@ -221,10 +244,14 @@ void Window::HandleJoystick()
 	}
 
 	UpdateView();
+#else  // For github CI/CD pipeline without openGL
+	throw OpenGLMissing();
+#endif
 }
 
 void Window::HandleKeyPressed(uint16_t key, uint16_t action)
 {
+#ifndef  OPENGL_MISSING
 	switch (key)
 	{
 		// Left
@@ -260,6 +287,10 @@ void Window::HandleKeyPressed(uint16_t key, uint16_t action)
 	} // switch
 
 	UpdateView();
+#else  // For github CI/CD pipeline without openGL
+	throw OpenGLMissing();
+#endif
+
 }
 
 void Window::HandleResize(uint32_t width, uint32_t height)

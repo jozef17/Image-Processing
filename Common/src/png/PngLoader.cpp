@@ -11,6 +11,8 @@
 #include <memory>
 #include <cstdint>
 #include <algorithm>
+#include <cstring>
+#include <cmath>
 
 #ifdef ENABLE_LOGS
 #include <iostream>
@@ -286,7 +288,7 @@ std::unique_ptr<Image> PngLoader::ProcessData(BitStream& bitstream)
 			}
 
 			// Prepare pixel
-			RGBAPixel pixel = { red, green, blue, alpha };
+			RGBAPixel pixel = { static_cast<uint8_t>(red), static_cast<uint8_t>(green), static_cast<uint8_t>(blue), static_cast<uint8_t>(alpha) };
 			if (this->colorType == ColorType::Indexed)
 			{
 				pixel = this->colorPalette[reader.GetNextValue()];
