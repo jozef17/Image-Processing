@@ -25,7 +25,7 @@ target_link_libraries(CommonTests
 	Common
 )
 
-add_test(NAME CommonTests COMMAND example)
+add_test(NAME CommonTests COMMAND CommonTests)
 
 list (APPEND EXTRA_INCLUDES "${CMAKE_CURRENT_LIST_DIR}/../include")
 set_property(TARGET CommonTests PROPERTY CXX_STANDARD 17)

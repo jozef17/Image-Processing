@@ -18,7 +18,7 @@ target_link_libraries(CompressionTests
 	Common
 )
 
-add_test(NAME CompressionTests COMMAND example)
+add_test(NAME CompressionTests COMMAND CompressionTests)
 
 list (APPEND EXTRA_INCLUDES "${CMAKE_SOURCE_DIR}/Common/include")
 list (APPEND EXTRA_INCLUDES "${CMAKE_CURRENT_LIST_DIR}/../include")
