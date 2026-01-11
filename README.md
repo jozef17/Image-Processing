@@ -1,3 +1,5 @@
+[![CI/CD](https://github.com/jozef17/Image-Processing/actions/workflows/cmake-multi-platform.yml/badge.svg?branch=main)](https://github.com/jozef17/Image-Processing/actions/workflows/cmake-multi-platform.yml)
+
 # Image Processing
 - CMake based projects related to Image Processing
 - Written in C++17
