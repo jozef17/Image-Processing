@@ -12,7 +12,7 @@ target_link_libraries(ConvolutionFilterTests
 	Common
 )
 
-add_test(NAME ConvolutionFilterTests COMMAND example)
+add_test(NAME ConvolutionFilterTests COMMAND ConvolutionFilterTests)
 
 list (APPEND EXTRA_INCLUDES "${CMAKE_SOURCE_DIR}/Common/include")
 list (APPEND EXTRA_INCLUDES "${CMAKE_CURRENT_LIST_DIR}/../include")
